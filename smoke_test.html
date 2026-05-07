@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LabelFlow API Smoke Test</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #172036;
+      --panel-2: #1e2942;
+      --border: rgba(148, 163, 184, 0.18);
+      --text: #ecf2ff;
+      --muted: #9fb0d3;
+      --ok: #2fd27f;
+      --fail: #ff5f5f;
+      --skip: #f5b84b;
+      --accent: #4a78ff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(74, 120, 255, 0.18), transparent 30%),
+        linear-gradient(180deg, #0d1425 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1520px;
+      margin: 0 auto;
+      padding: 32px 24px 40px;
+    }
+
+    .hero,
+    .layout {
+      background: rgba(23, 32, 54, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(4, 12, 28, 0.35);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    h1,
+    h2 {
+      margin: 0 0 12px;
+    }
+
+    .lead {
+      margin: 0 0 18px;
+      max-width: 980px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button,
+    .link-button {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 22px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button {
+      background: linear-gradient(135deg, #5b88ff 0%, #3c66e2 100%);
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .link-button {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .run-state {
+      min-height: 28px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .summary {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px;
+    }
+
+    .label {
+      color: #8ea4cf;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .value {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.05;
+    }
+
+    .value.ok {
+      color: var(--ok);
+    }
+
+    .value.fail {
+      color: var(--fail);
+    }
+
+    .value.skip {
+      color: var(--skip);
+    }
+
+    .body {
+      min-width: 0;
+    }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 16px;
+    }
+
+    .generated-at {
+      color: var(--muted);
+      text-align: right;
+      font-size: 14px;
+    }
+
+    .groups {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .group {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+
+    .group-name {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .group-meta {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(10, 16, 30, 0.3);
+    }
+
+    table {
+      width: 100%;
+      min-width: 1280px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #18233c;
+      color: #a8bbe3;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      z-index: 1;
+    }
+
+    tr.fail {
+      background: rgba(255, 95, 95, 0.08);
+    }
+
+    tr.ok {
+      background: rgba(47, 210, 127, 0.05);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 58px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .badge.ok {
+      background: rgba(47, 210, 127, 0.16);
+      color: var(--ok);
+    }
+
+    .badge.fail {
+      background: rgba(255, 95, 95, 0.16);
+      color: var(--fail);
+    }
+
+    .badge.skip {
+      background: rgba(245, 184, 75, 0.16);
+      color: var(--skip);
+    }
+
+    .mono {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+    }
+
+    .details {
+      display: grid;
+      gap: 6px;
+      min-width: 240px;
+    }
+
+    .details .title {
+      font-weight: 700;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .excerpt {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      color: #d7e2fb;
+      font-size: 13px;
+    }
+
+    .artifacts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .artifacts a {
+      color: #8db6ff;
+    }
+
+    .empty {
+      padding: 18px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>LabelFlow API smoke test</h1>
+      <p class="lead">
+        Эта страница прогоняет API-операции и показывает, где именно стопорится сценарий:
+        endpoint, method, ожидаемый статус, фактический статус, stop-stage и текст ошибки.
+      </p>
+      <div class="toolbar">
+        <button id="runButton" type="button">Запустить smoke test</button>
+        <a class="link-button" href="/">Открыть LabelFlow</a>
+        <div id="runState" class="run-state">Ожидание запуска.</div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="summary">
+        <div class="card">
+          <div class="label">Статус</div>
+          <div id="summaryStatus" class="value">Ожидание</div>
+        </div>
+        <div class="card">
+          <div class="label">Всего операций</div>
+          <div id="summaryTotal" class="value">0</div>
+        </div>
+        <div class="card">
+          <div class="label">OK</div>
+          <div id="summaryPassed" class="value ok">0</div>
+        </div>
+        <div class="card">
+          <div class="label">FAIL</div>
+          <div id="summaryFailed" class="value fail">0</div>
+        </div>
+        <div class="card">
+          <div class="label">SKIP</div>
+          <div id="summarySkipped" class="value skip">0</div>
+        </div>
+        <div class="card">
+          <div class="label">Длительность</div>
+          <div id="summaryDuration" class="value">0 ms</div>
+        </div>
+        <div class="card">
+          <div class="label">Группы</div>
+          <div id="groupsAside" class="muted">Данных пока нет.</div>
+        </div>
+      </aside>
+
+      <div class="body">
+        <div class="topline">
+          <h2>Результаты</h2>
+          <div id="generatedAt" class="generated-at">Еще не запускались</div>
+        </div>
+
+        <div id="groups" class="groups"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Статус</th>
+                <th>Группа</th>
+                <th>Операция</th>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Ожидание</th>
+                <th>Факт</th>
+                <th>Стоп-этап</th>
+                <th>Сообщение</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody">
+              <tr>
+                <td colspan="10" class="empty">Результатов пока нет.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const runButton = document.getElementById("runButton");
+    const runState = document.getElementById("runState");
+    const summaryStatus = document.getElementById("summaryStatus");
+    const summaryTotal = document.getElementById("summaryTotal");
+    const summaryPassed = document.getElementById("summaryPassed");
+    const summaryFailed = document.getElementById("summaryFailed");
+    const summarySkipped = document.getElementById("summarySkipped");
+    const summaryDuration = document.getElementById("summaryDuration");
+    const generatedAt = document.getElementById("generatedAt");
+    const resultBody = document.getElementById("resultBody");
+    const groups = document.getElementById("groups");
+    const groupsAside = document.getElementById("groupsAside");
+
+    function setRunState(message, color) {
+      runState.textContent = message;
+      runState.style.color = color || "var(--muted)";
+    }
+
+    function normalizeStatus(status) {
+      const value = String(status || "").toLowerCase();
+      if (value === "passed" || value === "ok") return "ok";
+      if (value === "failed" || value === "fail") return "fail";
+      return "skip";
+    }
+
+    function makeBadge(status) {
+      const normalized = normalizeStatus(status);
+      const label = normalized === "ok" ? "OK" : normalized === "fail" ? "FAIL" : "SKIP";
+      return `<span class="badge ${normalized}">${label}</span>`;
+    }
+
+    function detailsToLines(details) {
+      if (!details) return [];
+      if (Array.isArray(details)) return details.map((item) => String(item));
+      if (typeof details === "string") return [details];
+      if (typeof details === "object") {
+        return Object.entries(details).map(([key, value]) => `${key}: ${value}`);
+      }
+      return [String(details)];
+    }
+
+    function buildGroups(operations) {
+      const buckets = new Map();
+      operations.forEach((item) => {
+        const name = item.group || "Общее";
+        if (!buckets.has(name)) {
+          buckets.set(name, { group: name, total: 0, passed: 0, failed: 0, skipped: 0 });
+        }
+
+        const bucket = buckets.get(name);
+        bucket.total += 1;
+        if (item.status === "ok") bucket.passed += 1;
+        else if (item.status === "fail") bucket.failed += 1;
+        else bucket.skipped += 1;
+      });
+      return Array.from(buckets.values());
+    }
+
+    function normalizeLegacyReport(report) {
+      if (Array.isArray(report.operations)) {
+        const operations = report.operations.map((item, index) => ({
+          id: item.id ?? index + 1,
+          status: normalizeStatus(item.status),
+          group: item.group || "Общее",
+          title: item.title || `Операция ${index + 1}`,
+          method: item.method || "-",
+          endpoint: item.endpoint || "-",
+          expected_status: item.expected_status ?? "-",
+          actual_status: item.actual_status ?? "-",
+          stop_stage: item.stop_stage || "-",
+          message: item.message || "",
+          details: Array.isArray(item.details) ? item.details : detailsToLines(item.details),
+          response_excerpt: item.response_excerpt || "",
+          artifacts: Array.isArray(item.artifacts) ? item.artifacts : []
+        }));
+
+        const groupsNormalized = Array.isArray(report.groups) ? report.groups : buildGroups(operations);
+        const summary = report.summary || {};
+        return {
+          success: Boolean(report.success),
+          generated_at: report.generated_at || "-",
+          duration_ms: report.duration_ms ?? 0,
+          summary: {
+            total: summary.total ?? operations.length,
+            passed: summary.passed ?? operations.filter((item) => item.status === "ok").length,
+            failed: summary.failed ?? operations.filter((item) => item.status === "fail").length,
+            skipped: summary.skipped ?? operations.filter((item) => item.status === "skip").length
+          },
+          groups: groupsNormalized,
+          operations
+        };
+      }
+
+      const legacyTests = Array.isArray(report.tests) ? report.tests : [];
+      const operations = legacyTests.map((test, index) => {
+        const details = detailsToLines(test.details);
+        const httpMatch = details.join(" ").match(/HTTP\s+(\d+),\s*expected\s+(\d+)/i);
+        const status = normalizeStatus(test.status);
+        return {
+          id: index + 1,
+          status,
+          group: test.category || "Общее",
+          title: test.name || `Проверка ${index + 1}`,
+          method: "-",
+          endpoint: "-",
+          expected_status: httpMatch ? httpMatch[2] : "-",
+          actual_status: httpMatch ? httpMatch[1] : "-",
+          stop_stage: status === "fail" ? "legacy_suite" : "-",
+          message: details[0] || (status === "ok" ? "Проверка выполнена успешно" : "Проверка пропущена"),
+          details: details.slice(1),
+          response_excerpt: "",
+          artifacts: Array.isArray(test.artifacts) ? test.artifacts : []
+        };
+      });
+
+      const summary = report.summary || {};
+      return {
+        success: Boolean(report.success),
+        generated_at: report.generated_at || "-",
+        duration_ms: report.duration_ms ?? 0,
+        summary: {
+          total: summary.total ?? operations.length,
+          passed: summary.passed ?? operations.filter((item) => item.status === "ok").length,
+          failed: summary.failed ?? operations.filter((item) => item.status === "fail").length,
+          skipped: summary.skipped ?? operations.filter((item) => item.status === "skip").length
+        },
+        groups: buildGroups(operations),
+        operations
+      };
+    }
+
+    function renderGroups(groupItems) {
+      groups.innerHTML = "";
+      if (!Array.isArray(groupItems) || groupItems.length === 0) {
+        groupsAside.textContent = "Данных пока нет.";
+        return;
+      }
+
+      groupsAside.textContent = `${groupItems.length}`;
+      groupItems.forEach((group) => {
+        const node = document.createElement("div");
+        node.className = "group";
+        node.innerHTML = `
+          <div class="group-name">${group.group}</div>
+          <div class="group-meta">Всего: ${group.total} · OK: ${group.passed} · FAIL: ${group.failed} · SKIP: ${group.skipped}</div>
+        `;
+        groups.appendChild(node);
+      });
+    }
+
+    function renderMessageCell(item) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "details";
+
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = item.message || "";
+      wrapper.appendChild(title);
+
+      (item.details || []).forEach((detail) => {
+        const line = document.createElement("div");
+        line.className = "muted";
+        line.textContent = detail;
+        wrapper.appendChild(line);
+      });
+
+      if (item.response_excerpt) {
+        const excerpt = document.createElement("div");
+        excerpt.className = "excerpt";
+        excerpt.textContent = item.response_excerpt;
+        wrapper.appendChild(excerpt);
+      }
+
+      if (Array.isArray(item.artifacts) && item.artifacts.length > 0) {
+        const artifacts = document.createElement("div");
+        artifacts.className = "artifacts";
+        item.artifacts.forEach((href, index) => {
+          const link = document.createElement("a");
+          link.href = href;
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          link.textContent = `Артефакт ${index + 1}`;
+          artifacts.appendChild(link);
+        });
+        wrapper.appendChild(artifacts);
+      }
+
+      return wrapper;
+    }
+
+    function renderRows(operations) {
+      resultBody.innerHTML = "";
+
+      if (!Array.isArray(operations) || operations.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="10" class="empty">В отчете нет операций для отображения.</td>`;
+        resultBody.appendChild(tr);
+        return;
+      }
+
+      operations.forEach((item) => {
+        const tr = document.createElement("tr");
+        tr.className = item.status || "";
+        const expected = Array.isArray(item.expected_status)
+          ? item.expected_status.join(", ")
+          : String(item.expected_status ?? "-");
+
+        tr.innerHTML = `
+          <td class="mono">${item.id}</td>
+          <td>${makeBadge(item.status)}</td>
+          <td>${item.group || ""}</td>
+          <td>${item.title || ""}</td>
+          <td class="mono">${item.method || "-"}</td>
+          <td class="mono">${item.endpoint || "-"}</td>
+          <td class="mono">${expected}</td>
+          <td class="mono">${item.actual_status ?? "-"}</td>
+          <td>${item.stop_stage || "-"}</td>
+          <td></td>
+        `;
+        tr.children[9].appendChild(renderMessageCell(item));
+        resultBody.appendChild(tr);
+      });
+    }
+
+    function renderReport(rawReport) {
+      const report = normalizeLegacyReport(rawReport);
+
+      summaryStatus.textContent = report.success ? "Пройден" : "Есть ошибки";
+      summaryStatus.style.color = report.success ? "var(--ok)" : "var(--fail)";
+      summaryTotal.textContent = String(report.summary.total);
+      summaryPassed.textContent = String(report.summary.passed);
+      summaryFailed.textContent = String(report.summary.failed);
+      summarySkipped.textContent = String(report.summary.skipped);
+      summaryDuration.textContent = `${report.duration_ms} ms`;
+      generatedAt.textContent = `Сформирован: ${report.generated_at}`;
+
+      renderGroups(report.groups || []);
+      renderRows(report.operations || []);
+      setRunState(
+        report.success ? "Smoke test завершен: ошибок нет." : "Smoke test завершен: есть ошибки.",
+        report.success ? "var(--ok)" : "var(--fail)"
+      );
+    }
+
+    async function runSmokeTest() {
+      runButton.disabled = true;
+      setRunState("Идет прогон API-операций...", "var(--skip)");
+      summaryStatus.textContent = "Запуск...";
+      summaryStatus.style.color = "var(--skip)";
+
+      try {
+        const response = await fetch(`/api/smoke-test?_=${Date.now()}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({})
+        });
+
+        const report = await response.json();
+        if (!response.ok) {
+          throw new Error(report.error || `HTTP ${response.status}`);
+        }
+
+        renderReport(report);
+      } catch (error) {
+        summaryStatus.textContent = "Ошибка";
+        summaryStatus.style.color = "var(--fail)";
+        summaryTotal.textContent = "0";
+        summaryPassed.textContent = "0";
+        summaryFailed.textContent = "0";
+        summarySkipped.textContent = "0";
+        summaryDuration.textContent = "0 ms";
+        generatedAt.textContent = "Запуск завершился ошибкой";
+        groups.innerHTML = "";
+        groupsAside.textContent = "Данных пока нет.";
+        renderRows([]);
+        setRunState(`Smoke test не выполнился: ${error.message}`, "var(--fail)");
+      } finally {
+        runButton.disabled = false;
+      }
+    }
+
+    runButton.addEventListener("click", runSmokeTest);
+  </script>
+</body>
+</html>

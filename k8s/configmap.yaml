@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: labelflow-config
+data:
+  AUTH_ENABLED: "true"
+  AUTH_DEFAULT_ENV: "prod"
+  AUTH_LOGIN_MODE: "json"
+  AUTH_USERNAME_FIELD: "username"
+  AUTH_PASSWORD_FIELD: "password"
+  AUTH_TOKEN_KEYS: "access_token,accessToken,token,jwt,id_token,data.access_token,data.accessToken,data.token"
+
+  AUTH_PROD_LOGIN_URL: "https://example-prod-url/"
+  AUTH_PROD_API_BASE_URL: "https://example-prod-api/"
+  AUTH_TEST_LOGIN_URL: "https://example-test-url/"
+  AUTH_TEST_API_BASE_URL: "https://example-test-api/"
+
+  PRINTX_TEMPLATE_METHOD: "POST"
+  PRINTX_TEMPLATE_ENDPOINT: "/wh/v1/print-templates"
+  PRINTX_TEMPLATE_TYPE: "zpl"
+  PRINTX_TEMPLATE_CLASS: "PrintTemplate"
+  PRINTX_ACTIVITY_ID: ""
+
+  EXTERNAL_CONNECTION_TEST_PATH: "auth/v1/profile"
+  AUTH_PROFILE_PATH: "auth/v1/profile"
+
+  LLM_PROVIDER: "none"
+  LLM_MODEL: ""

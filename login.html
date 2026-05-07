@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/app-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/app-192.png">
+  <title>LabelFlow - Авторизация</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --surface: #ffffff;
+      --surface-alt: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-light: #64748b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08);
+      --shadow-lg: 0 10px 30px rgba(15,23,42,.10);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--surface-alt);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      height: 46px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .topbar h1 { font-size: 17px; font-weight: 700; }
+    .badge {
+      background: var(--primary);
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .topbar-status {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    .page {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: minmax(280px, 1.05fr) minmax(320px, 420px);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .ph {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #fafbfc;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--text-light);
+    }
+
+    .pb {
+      padding: 22px;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-height: 100%;
+      background:
+        linear-gradient(180deg, rgba(37,99,235,.05), rgba(37,99,235,0)),
+        var(--surface);
+    }
+    .hero h2 {
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 800;
+    }
+    .hero p {
+      color: var(--text-light);
+      font-size: 14px;
+    }
+    .hero-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-alt);
+      padding: 14px;
+    }
+    .hero-card + .hero-card {
+      margin-top: 10px;
+    }
+    .hero-card strong {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--text-light);
+      margin-bottom: 4px;
+    }
+    .hero-card span {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .form-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .form-title {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+    .form-sub {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    .fl {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-light);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    input {
+      width: 100%;
+      padding: 10px 11px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--surface);
+      color: var(--text);
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.10);
+    }
+
+    .btn {
+      padding: 10px 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all .15s;
+      line-height: 1.3;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-p { background: var(--primary); color: #fff; }
+    .btn-p:hover:not(:disabled) { background: var(--primary-dark); }
+    .btn-s {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-s:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .ar {
+      display: flex;
+      gap: 8px;
+    }
+    .ar .btn {
+      flex: 1;
+    }
+    .env-switch {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .env-btn {
+      min-height: 44px;
+      padding: 10px 12px;
+      text-align: left;
+      justify-content: flex-start;
+      line-height: 1.2;
+    }
+    .env-btn small {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-light);
+    }
+    .env-btn.active {
+      background: rgba(37,99,235,.08);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .env-btn.active small {
+      color: var(--primary);
+    }
+
+    .status {
+      min-height: 22px;
+      font-size: 12px;
+      color: var(--text-light);
+    }
+    .status.err { color: var(--danger); }
+    .status.ok { color: var(--success); }
+
+    .meta {
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      color: var(--text-light);
+      font-size: 12px;
+    }
+
+    @media (max-width: 840px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .page {
+        padding: 12px;
+      }
+      .pb {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>LabelFlow</h1>
+    <span class="badge">AI v3.0</span>
+    <div class="topbar-status">Страница авторизации</div>
+  </header>
+
+  <main class="page">
+    <div class="shell">
+      <section class="panel">
+        <div class="ph">Доступ</div>
+        <div class="pb hero">
+          <div>
+            <h2>Вход в рабочий контур LabelFlow</h2>
+            <p style="margin-top:10px;">
+              Авторизация проходит через ETG. После успешного входа сервер LabelFlow
+              получает токен, подтягивает профиль и возвращает вас в генератор или редактор.
+            </p>
+          </div>
+
+          <div>
+            <div class="hero-card">
+              <strong>Следующий маршрут</strong>
+              <span id="next-label">/</span>
+            </div>
+            <div class="hero-card">
+              <strong>Контур авторизации</strong>
+              <span id="auth-subtitle">Проверяем конфигурацию…</span>
+            </div>
+            <div class="hero-card">
+              <strong>Как хранится сессия</strong>
+              <span>Внешний токен и cookies остаются на стороне Flask, а не в `localStorage` браузера.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="ph">Авторизация</div>
+        <div class="pb form-wrap">
+          <div>
+            <div class="form-title">Войти в LabelFlow</div>
+            <div class="form-sub">Используйте логин и пароль от ETG.</div>
+          </div>
+
+          <div>
+            <label class="fl">Контур подключения</label>
+            <div class="env-switch" id="auth-env-switch"></div>
+          </div>
+
+          <div>
+            <label class="fl" id="auth-login-label">Логин</label>
+            <input type="text" id="auth-username" autocomplete="username" placeholder="Введите логин">
+          </div>
+
+          <div>
+            <label class="fl" id="auth-password-label">Пароль</label>
+            <input type="password" id="auth-password" autocomplete="current-password" placeholder="Введите пароль">
+          </div>
+
+          <div class="ar">
+            <button class="btn btn-p" id="btn-auth-login" type="button">Войти</button>
+            <button class="btn btn-s" id="btn-home" type="button">На главную</button>
+          </div>
+
+          <div class="status" id="auth-status"></div>
+
+          <div class="meta">
+            Если сессия уже активна, страница автоматически вернёт вас в приложение.
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const nextPath = normalizeNext(new URLSearchParams(window.location.search).get('next'));
+    let authConfig = { enabled: true };
+    let selectedEnvironment = 'prod';
+
+    document.getElementById('next-label').textContent = nextPath;
+    document.getElementById('btn-auth-login').addEventListener('click', submitExternalAuth);
+    document.getElementById('btn-home').addEventListener('click', () => {
+      window.location.assign('/');
+    });
+    document.getElementById('auth-username').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') submitExternalAuth();
+    });
+    document.getElementById('auth-password').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') submitExternalAuth();
+    });
+
+    (async () => {
+      try {
+        authConfig = await requestJson('/api/auth/config', { skipAuthRedirect: true });
+        selectedEnvironment = authConfig.auth_environment || 'prod';
+        renderEnvironmentSwitch();
+        document.getElementById('auth-login-label').textContent = authConfig.username_label || 'Логин';
+        document.getElementById('auth-password-label').textContent = authConfig.password_label || 'Пароль';
+        updateEnvironmentSubtitle();
+
+        if (!authConfig.enabled) {
+          setStatus('Авторизация отключена. Перенаправляем…', 'ok');
+          window.location.replace(nextPath || '/');
+          return;
+        }
+
+        const status = await requestJson('/api/auth/status', { skipAuthRedirect: true });
+        if (status.authenticated) {
+          window.location.replace(nextPath || '/');
+        }
+      } catch (e) {
+        setStatus(e.message || 'Не удалось подготовить страницу входа', 'err');
+      }
+    })();
+
+    function normalizeNext(raw) {
+      const value = String(raw || '/').trim();
+      if (!value.startsWith('/')) return '/';
+      if (value.startsWith('//') || value.startsWith('/\\')) return '/';
+      return value;
+    }
+
+    function setStatus(message, cls = '') {
+      const el = document.getElementById('auth-status');
+      el.textContent = message || '';
+      el.className = 'status' + (cls ? ' ' + cls : '');
+    }
+
+    function getEnvironmentOptions() {
+      const options = Array.isArray(authConfig.auth_environments) ? authConfig.auth_environments : [];
+      return options.length ? options : [
+        { key: 'prod', label: 'Обычная', login_url: authConfig.login_url || '' },
+        { key: 'test', label: 'Тест', login_url: '' },
+      ];
+    }
+
+    function renderEnvironmentSwitch() {
+      const root = document.getElementById('auth-env-switch');
+      root.innerHTML = '';
+      const options = getEnvironmentOptions();
+      if (!options.some((item) => item.key === selectedEnvironment) && options[0]) {
+        selectedEnvironment = options[0].key;
+      }
+      options.forEach((item) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-s env-btn' + (item.key === selectedEnvironment ? ' active' : '');
+        button.innerHTML = `<span>${item.label || item.key}</span><small>${item.login_url || 'URL не задан'}</small>`;
+        button.addEventListener('click', () => {
+          selectedEnvironment = item.key;
+          renderEnvironmentSwitch();
+          updateEnvironmentSubtitle();
+          setStatus('');
+        });
+        root.appendChild(button);
+      });
+    }
+
+    function updateEnvironmentSubtitle() {
+      const selected = getEnvironmentOptions().find((item) => item.key === selectedEnvironment) || {};
+      document.getElementById('auth-subtitle').textContent = authConfig.enabled
+        ? `${selected.label || 'Контур'}: ${selected.login_url || authConfig.login_url || 'Внешний сервис авторизации'}`
+        : 'Авторизация отключена';
+    }
+
+    async function requestJson(url, options = {}) {
+      const response = await fetch(url, { credentials: 'same-origin', ...options });
+      let data = {};
+      try { data = await response.json(); } catch (e) {}
+      if (response.status === 401 && !options.skipAuthRedirect) {
+        throw new Error((data && data.error) || 'Требуется авторизация');
+      }
+      if (!response.ok) {
+        throw new Error((data && data.error) || `HTTP ${response.status}`);
+      }
+      return data;
+    }
+
+    async function submitExternalAuth() {
+      const username = document.getElementById('auth-username').value.trim();
+      const password = document.getElementById('auth-password').value;
+      if (!username || !password) {
+        setStatus('Введите логин и пароль', 'err');
+        return;
+      }
+
+      const button = document.getElementById('btn-auth-login');
+      button.disabled = true;
+      setStatus('Выполняем вход...');
+
+      try {
+        const data = await requestJson('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, environment: selectedEnvironment }),
+          skipAuthRedirect: true,
+        });
+        if (!data || !data.success) {
+          throw new Error((data && data.error) || 'Ошибка авторизации');
+        }
+        setStatus('Вход выполнен. Переходим в приложение...', 'ok');
+        window.location.replace(nextPath || '/');
+      } catch (e) {
+        setStatus(e.message || 'Ошибка авторизации', 'err');
+      } finally {
+        button.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

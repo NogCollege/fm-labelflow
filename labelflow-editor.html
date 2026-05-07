@@ -1,0 +1,2646 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/app-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/app-192.png">
+    <title>ARTDECO - Редактор этикеток</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .preview-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            margin: 15px 0 10px;
+            color: #555;
+            font-size: 16px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tool-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .tool-btn.primary {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .tool-btn.primary:hover {
+            background: #5a67d8;
+        }
+
+        .upload-section {
+            background: #f0f7ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px dashed #667eea;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background: #f0f4ff;
+        }
+
+        .upload-area.dragover {
+            background: #e6ecfe;
+            border-color: #4c51bf;
+        }
+
+        .upload-icon {
+            font-size: 30px;
+            margin-bottom: 5px;
+            color: #667eea;
+        }
+
+        .upload-text {
+            color: #4a5568;
+            font-size: 13px;
+        }
+
+        .upload-hint {
+            font-size: 11px;
+            color: #718096;
+        }
+
+        .status-message {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+            display: block;
+        }
+
+        .status-message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+            display: block;
+        }
+
+        .status-message.loading {
+            background: #e9d8fd;
+            color: #44337a;
+            border: 1px solid #d6bcfa;
+            display: block;
+        }
+
+        .elements-list {
+            margin-bottom: 20px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .element-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .element-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .element-item.selected {
+            border-color: #667eea;
+            background: #e6ecfe;
+        }
+
+        .element-icon {
+            font-size: 18px;
+            width: 25px;
+            text-align: center;
+        }
+
+        .element-info {
+            flex: 1;
+        }
+
+        .element-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .element-preview {
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .element-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .element-btn {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .element-btn:hover {
+            background: #f0f0f0;
+            border-color: #667eea;
+        }
+
+        .element-btn.delete:hover {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .canvas-container {
+            flex: 1;
+            background: #f0f0f0;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            min-height: 500px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #canvas-viewport {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            position: relative;
+            transform-origin: 0 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: default;
+        }
+        
+        #canvas-viewport.panning,
+        #canvas-viewport.panning * {
+            cursor: grabbing !important;
+        }
+
+        #label-canvas {
+            position: relative;
+            margin: auto;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        /* Сетка для редактора */
+        .grid-active #label-canvas {
+            background-image: 
+                linear-gradient(to right, #e0e0e0 1px, transparent 1px),
+                linear-gradient(to bottom, #e0e0e0 1px, transparent 1px),
+                linear-gradient(to right, #667eea 1px, transparent 1px),
+                linear-gradient(to bottom, #667eea 1px, transparent 1px);
+            background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+            background-position: 0 0, 0 0, 0 0, 0 0;
+            background-repeat: repeat;
+        }
+
+        .canvas-element {
+            position: absolute;
+            cursor: move;
+            border: 1px solid transparent;
+            transition: border 0.1s;
+            user-select: none;
+            padding: 0;
+            overflow: visible;
+            box-sizing: border-box;
+            will-change: left, top, width, height;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+            z-index: 1;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .canvas-element.selected {
+            border: 1px solid #667eea;
+            box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.3);
+            background: transparent;
+            z-index: 10;
+        }
+
+        .canvas-element:hover {
+            border: 1px dashed #667eea;
+        }
+
+        /* Маркеры изменения размера - минимальные */
+        .resize-handle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #667eea;
+            border: 1px solid white;
+            border-radius: 3px;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            pointer-events: all;
+        }
+
+        .canvas-element.selected .resize-handle {
+            opacity: 1;
+        }
+
+        .resize-handle:hover {
+            background: #5a67d8;
+        }
+
+        .handle-nw {
+            top: -3px;
+            left: -3px;
+            cursor: nw-resize;
+        }
+
+        .handle-n {
+            top: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: n-resize;
+        }
+
+        .handle-ne {
+            top: -3px;
+            right: -3px;
+            cursor: ne-resize;
+        }
+
+        .handle-w {
+            top: 50%;
+            left: -3px;
+            transform: translateY(-50%);
+            cursor: w-resize;
+        }
+
+        .handle-e {
+            top: 50%;
+            right: -3px;
+            transform: translateY(-50%);
+            cursor: e-resize;
+        }
+
+        .handle-sw {
+            bottom: -3px;
+            left: -3px;
+            cursor: sw-resize;
+        }
+
+        .handle-s {
+            bottom: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: s-resize;
+        }
+
+        .handle-se {
+            bottom: -3px;
+            right: -3px;
+            cursor: se-resize;
+        }
+
+        .element-text {
+            font-family: 'Arial', sans-serif;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+            flex: 1 1 auto;
+            overflow-y: auto;
+            overflow-x: hidden;
+            pointer-events: none;
+            line-height: 1.2;
+            color: #000000;
+            padding: 0;
+            margin: 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            word-break: break-word;
+            hyphens: auto;
+            box-sizing: border-box;
+        }
+
+        .element-text::-webkit-scrollbar {
+            display: none;
+        }
+
+        .element-image {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .element-barcode {
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 10px;
+            border: 1px dashed #999;
+            pointer-events: none;
+            overflow: hidden;
+            word-break: break-all;
+            padding: 0;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 5px;
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .properties-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .property-group {
+            margin-bottom: 12px;
+        }
+
+        .property-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .property-group input,
+        .property-group select,
+        .property-group textarea {
+            width: 100%;
+            padding: 6px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .property-group input:focus,
+        .property-group select:focus,
+        .property-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .property-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 5px;
+        }
+
+        .canvas-info {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #333;
+            z-index: 100;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-weight: 500;
+        }
+
+        .alignment-guide {
+            position: absolute;
+            background: rgba(239, 68, 68, 0.9);
+            pointer-events: none;
+            z-index: 200;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.6);
+        }
+
+        .alignment-guide.vertical {
+            width: 1px;
+        }
+
+        .alignment-guide.horizontal {
+            height: 1px;
+        }
+
+        .info-message {
+            background: #f0f7ff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #2c3e50;
+            border-left: 4px solid #667eea;
+            margin-top: 15px;
+        }
+
+        .info-message ul {
+            margin-top: 5px;
+            padding-left: 20px;
+        }
+
+        .info-message li {
+            margin-bottom: 3px;
+        }
+
+        small {
+            color: #718096;
+            font-size: 10px;
+            display: block;
+            margin-top: 3px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .grid-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .grid-toggle label {
+            font-size: 12px;
+            color: #555;
+        }
+
+        .nav-bar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .tab-btn {
+            height: 28px;
+            padding: 0 12px;
+            border-radius: 7px;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .tab-btn:hover { background: #e2e8f0; }
+
+        .tab-btn.active {
+            background: #6366f1;
+            color: #fff;
+            border-color: #6366f1;
+        }
+
+        .tab-btn.active:hover { background: #6366f1; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <button class="tab-btn" onclick="window.location.assign('/')">Генератор</button>
+        <button class="tab-btn active">Редактор</button>
+    </div>
+    <div class="container">
+        <div class="panel">
+            <h2>📋 Управление</h2>
+            
+            <div class="toolbar">
+                <button class="tool-btn primary" onclick="addNewElement()">➕ Текст</button>
+                <button class="tool-btn" onclick="loadJSON()">📂 Загрузить</button>
+                <button class="tool-btn" onclick="saveJSON()">💾 JSON</button>
+                <button class="tool-btn" onclick="saveAsPNG()">🖼️ PNG</button>
+                <button class="tool-btn primary" onclick="finalizeEditor()">✓ Готово</button>
+                <button class="tool-btn" onclick="clearEditorData()" title="Очистить редактор">🗑 Очистить</button>
+            </div>
+
+            <div class="upload-section">
+                <div class="upload-area" id="json-upload-area">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Нажмите или перетащите JSON</div>
+                    <div class="upload-hint">Формат ARTDECO/Kerasis</div>
+                    <input type="file" id="json-input" accept=".json" style="display: none;">
+                </div>
+                <div class="status-message" id="json-status"></div>
+            </div>
+
+            <div class="property-group" style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Ширина (мм)</label>
+                    <input type="number" id="canvas-width" value="58" step="0.1" min="10" max="300" onchange="updateCanvasSize()">
+                </div>
+                <div style="flex: 1;">
+                    <label>Высота (мм)</label>
+                    <input type="number" id="canvas-height" value="60" step="0.1" min="10" max="300" onchange="updateCanvasSize()">
+                </div>
+            </div>
+
+            <div class="grid-toggle">
+                <input type="checkbox" id="show-grid" checked onchange="toggleGrid()">
+                <label for="show-grid">Показать сетку (только в редакторе)</label>
+            </div>
+
+            <h3>Элементы (<span id="elements-count">0</span>)</h3>
+            <div class="elements-list" id="elements-list"></div>
+
+            <div class="properties-panel" id="properties-panel" style="display: none;">
+                <h3>⚙️ Свойства</h3>
+                <div class="property-group">
+                    <label>Тип</label>
+                    <select id="prop-type" onchange="updateSelectedProperty('type', this.value)">
+                        <option value="text">Текст</option>
+                        <option value="image">Изображение</option>
+                        <option value="barcode">Штрихкод</option>
+                    </select>
+                </div>
+                <div class="property-group" id="prop-text-group">
+                    <label>Текст</label>
+                    <textarea id="prop-text" rows="3" onchange="updateSelectedProperty('exampleData', this.value)"></textarea>
+                </div>
+                <div class="property-group">
+                    <label>X (мм)</label>
+                    <input type="number" id="prop-x" step="0.1" onchange="updateSelectedProperty('x', parseFloat(this.value))">
+                </div>
+                <div class="property-group">
+                    <label>Y (мм)</label>
+                    <input type="number" id="prop-y" step="0.1" onchange="updateSelectedProperty('y', parseFloat(this.value))">
+                </div>
+                <div class="property-group">
+                    <label>Ширина (мм)</label>
+                    <input type="number" id="prop-width" step="0.1" min="0.1" onchange="updateSelectedProperty('width', parseFloat(this.value))">
+                </div>
+                <div class="property-group">
+                    <label>Высота (мм)</label>
+                    <input type="number" id="prop-height" step="0.1" min="0.1" onchange="updateSelectedProperty('height', parseFloat(this.value))">
+                </div>
+                <div class="property-group">
+                    <label>Размер шрифта (мм)</label>
+                    <input type="number" id="prop-fontsize" step="0.1" min="1" max="20" onchange="updateSelectedProperty('fontSize', parseFloat(this.value))">
+                </div>
+                <div class="property-group">
+                    <label>Шрифт</label>
+                    <select id="prop-fontfamily" onchange="updateSelectedProperty('fontFamily', this.value)">
+                        <option value="Arial">Arial</option>
+                        <option value="Arial Narrow">Arial Narrow</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Courier New">Courier New</option>
+                    </select>
+                </div>
+                <div class="property-group">
+                    <label>Выравнивание</label>
+                    <select id="prop-align" onchange="updateSelectedProperty('align', this.value)">
+                        <option value="L">По левому краю</option>
+                        <option value="C">По центру</option>
+                        <option value="R">По правому краю</option>
+                        <option value="J">По ширине</option>
+                    </select>
+                </div>
+                <div class="property-group">
+                    <label style="display: flex; align-items: center;">
+                        <input type="checkbox" id="prop-bold" onchange="updateSelectedProperty('fontBold', this.checked)">
+                        <span style="margin-left: 5px;">Жирный</span>
+                    </label>
+                </div>
+                <div class="property-group">
+                    <label style="display: flex; align-items: center;">
+                        <input type="checkbox" id="prop-italic" onchange="updateSelectedProperty('fontItalic', this.checked)">
+                        <span style="margin-left: 5px;">Курсив</span>
+                    </label>
+                </div>
+                <div class="property-group">
+                    <label style="display: flex; align-items: center;">
+                        <input type="checkbox" id="prop-uppercase" onchange="updateSelectedProperty('fontUppercase', this.checked)">
+                        <span style="margin-left: 5px;">CAPS</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="info-message">
+                <strong>💡 Управление:</strong> 
+                <ul>
+                    <li>Ctrl + колесо - масштаб</li>
+                    <li><strong>Перетаскивание пустой области</strong> - перемещение холста</li>
+                    <li>Клик на элемент - выбор</li>
+                    <li>Перетаскивание элемента - перемещение</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="preview-panel">
+            <h2>🖼️ Холст этикетки</h2>
+            
+            <div class="canvas-container" id="canvas-container">
+                <div id="canvas-viewport" onmousedown="startPan(event)">
+                    <div id="label-canvas" onclick="deselectElement(event)"></div>
+                </div>
+                <div class="canvas-info" id="canvas-info"></div>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="zoomWithButtons('in')">+</button>
+                    <button class="zoom-btn" onclick="zoomWithButtons('out')">-</button>
+                    <button class="zoom-btn" onclick="resetView()">↺</button>
+                    <button class="zoom-btn" onclick="fitToScreen()">⤢</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script>
+        let elements = [];
+        let selectedElement = null;
+        let nextId = 1;
+        let dragState = { isDragging: false };
+        let resizeState = { 
+            isResizing: false,
+            handle: null,
+            startX: 0,
+            startY: 0,
+            startWidth: 0,
+            startHeight: 0,
+            startLeft: 0,
+            startTop: 0
+        };
+        let panState = { 
+            isPanning: false,
+            startX: 0,
+            startY: 0,
+            scrollLeft: 0,
+            scrollTop: 0
+        };
+        let activeLayoutId = null;
+        let layoutCleanupSent = false;
+        let undoStack = [];
+        let isRestoringHistory = false;
+        let alignmentGuides = [];
+        
+        let baseScale = 20; // 1мм = 20px
+        let viewportZoom = 1;
+        const GRID_STEP_MM = 1;
+        const MAX_UNDO_STEPS = 100;
+        const ALIGNMENT_THRESHOLD_MM = 0.6;
+
+        const fontMap = {
+            '019bc5cd-e205-72a9-89b1-6cc1d57aa440': 'Arial',
+            '019bd4e0-d700-73c1-83eb-a56869d53441': 'Arial Narrow'
+        };
+        const fontIdMap = {
+            'Arial': '019bc5cd-e205-72a9-89b1-6cc1d57aa440',
+            'Arial Narrow': '019bd4e0-d700-73c1-83eb-a56869d53441'
+        };
+
+        // ── EDITOR STATE PERSISTENCE ──────────────────────────────
+        const _EDITOR_STATE_KEY = 'lf_editor_state';
+        let _editorSaveTimer = null;
+
+        function scheduleSaveEditorState() {
+            clearTimeout(_editorSaveTimer);
+            _editorSaveTimer = setTimeout(saveEditorState, 500);
+        }
+
+        function saveEditorState() {
+            try {
+                const state = {
+                    canvasWidth: parseFloat(document.getElementById('canvas-width').value) || 58,
+                    canvasHeight: parseFloat(document.getElementById('canvas-height').value) || 60,
+                    elements: JSON.parse(JSON.stringify(elements))
+                };
+                localStorage.setItem(_EDITOR_STATE_KEY, JSON.stringify(state));
+            } catch(e) {}
+        }
+
+        function restoreEditorStateFromStorage() {
+            try {
+                const saved = localStorage.getItem(_EDITOR_STATE_KEY);
+                if (!saved) return false;
+                const s = JSON.parse(saved);
+                if (!s || !s.elements || !s.elements.length) return false;
+
+                resetEditorCanvas();
+                document.getElementById('canvas-width').value = s.canvasWidth || 58;
+                document.getElementById('canvas-height').value = s.canvasHeight || 60;
+                updateCanvasSize(true);
+                s.elements.forEach(el => addElement(el));
+                updateElementsList();
+                updatePropertiesPanel();
+                clearHistory();
+                setTimeout(() => fitToScreen(), 100);
+                showStatus('Состояние редактора восстановлено', 'success');
+                return true;
+            } catch(e) {
+                console.error('restoreEditorStateFromStorage error:', e);
+                return false;
+            }
+        }
+
+        function clearEditorData() {
+            if (!confirm('Очистить редактор?\n\nВсе элементы будут удалены.')) return;
+            localStorage.removeItem(_EDITOR_STATE_KEY);
+            openEmptyEditor();
+        }
+        // ──────────────────────────────────────────────────────────
+
+        document.addEventListener('DOMContentLoaded', function() {
+            bootEditor();
+        });
+
+        function cloneElements(elementsToClone) {
+            return JSON.parse(JSON.stringify(elementsToClone || []));
+        }
+
+        function clearHistory() {
+            undoStack = [];
+        }
+
+        function captureEditorState() {
+            return {
+                elements: cloneElements(elements),
+                selectedElement: selectedElement,
+                nextId: nextId,
+                canvasWidth: parseFloat(document.getElementById('canvas-width').value) || 58,
+                canvasHeight: parseFloat(document.getElementById('canvas-height').value) || 60
+            };
+        }
+
+        function pushHistory() {
+            if (isRestoringHistory) {
+                return;
+            }
+
+            undoStack.push(captureEditorState());
+            if (undoStack.length > MAX_UNDO_STEPS) {
+                undoStack.shift();
+            }
+        }
+
+        function restoreEditorState(state) {
+            if (!state) {
+                return;
+            }
+
+            isRestoringHistory = true;
+
+            resetEditorCanvas();
+            document.getElementById('canvas-width').value = state.canvasWidth;
+            document.getElementById('canvas-height').value = state.canvasHeight;
+            updateCanvasSize(true);
+
+            elements = cloneElements(state.elements);
+            nextId = state.nextId || (elements.reduce((maxId, el) => Math.max(maxId, el.id || 0), 0) + 1);
+            selectedElement = state.selectedElement;
+
+            rerenderAllElements();
+            updateElementsList();
+            updatePropertiesPanel();
+            updateCanvasInfo();
+
+            isRestoringHistory = false;
+        }
+
+        function undoLastAction() {
+            if (!undoStack.length) {
+                return;
+            }
+
+            const previousState = undoStack.pop();
+            restoreEditorState(previousState);
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(value, max));
+        }
+
+        function snapToGrid(value) {
+            return Math.round(value / GRID_STEP_MM) * GRID_STEP_MM;
+        }
+
+        function getTextRenderConfig(element) {
+            const fontFamily = element.fontFamily || fontMap[element.fontId] || 'Arial';
+            return {
+                fontFamily: fontFamily,
+                fontWeight: element.fontBold ? 'bold' : 'normal',
+                fontStyle: element.fontItalic ? 'italic' : 'normal',
+                textTransform: element.fontUppercase ? 'uppercase' : 'none'
+            };
+        }
+
+        function measureTextHeightMm(element, widthMm) {
+            const widthPx = Math.max(1, widthMm * baseScale);
+            const config = getTextRenderConfig(element);
+            const probe = document.createElement('div');
+
+            probe.style.position = 'absolute';
+            probe.style.visibility = 'hidden';
+            probe.style.pointerEvents = 'none';
+            probe.style.left = '-99999px';
+            probe.style.top = '0';
+            probe.style.width = `${widthPx}px`;
+            probe.style.fontSize = `${(element.fontSize || 2) * baseScale}px`;
+            probe.style.fontFamily = config.fontFamily;
+            probe.style.fontWeight = config.fontWeight;
+            probe.style.fontStyle = config.fontStyle;
+            probe.style.textTransform = config.textTransform;
+            probe.style.lineHeight = '1.2';
+            probe.style.whiteSpace = 'pre-wrap';
+            probe.style.wordBreak = 'break-word';
+            probe.style.overflowWrap = 'break-word';
+            probe.style.hyphens = 'auto';
+            probe.style.padding = '0';
+            probe.style.margin = '0';
+            probe.style.boxSizing = 'border-box';
+            probe.textContent = element.exampleData || ' ';
+
+            document.body.appendChild(probe);
+            const heightMm = probe.scrollHeight / baseScale;
+            probe.remove();
+
+            return heightMm;
+        }
+
+        function findMinWidthForTextHeight(element, targetHeightMm, maxWidthMm) {
+            let low = 1;
+            let high = Math.max(1, maxWidthMm);
+            let best = high;
+
+            for (let i = 0; i < 18; i++) {
+                const mid = (low + high) / 2;
+                const requiredHeight = measureTextHeightMm(element, mid);
+
+                if (requiredHeight <= targetHeightMm) {
+                    best = mid;
+                    high = mid;
+                } else {
+                    low = mid;
+                }
+            }
+
+            return Math.round(best * 10) / 10;
+        }
+
+        function constrainTextElementSize(element) {
+            if (!element || element.type !== 'text') {
+                return;
+            }
+
+            const canvas = document.getElementById('label-canvas');
+            const canvasWidth = canvas ? (canvas.offsetWidth / baseScale) : Infinity;
+            const canvasHeight = canvas ? (canvas.offsetHeight / baseScale) : Infinity;
+
+            element.width = clamp(element.width, 1, Math.max(1, canvasWidth - element.x));
+            element.height = clamp(element.height, 1, Math.max(1, canvasHeight - element.y));
+
+            const minHeightForWidth = measureTextHeightMm(element, element.width);
+            if (element.height < minHeightForWidth) {
+                const fittedWidth = findMinWidthForTextHeight(
+                    element,
+                    element.height,
+                    Math.max(1, canvasWidth - element.x)
+                );
+
+                if (fittedWidth <= canvasWidth - element.x) {
+                    element.width = Math.max(element.width, fittedWidth);
+                }
+
+                const requiredHeight = measureTextHeightMm(element, element.width);
+                element.height = Math.max(element.height, requiredHeight);
+            }
+
+            element.width = clamp(element.width, 1, Math.max(1, canvasWidth - element.x));
+            element.height = clamp(element.height, 1, Math.max(1, canvasHeight - element.y));
+        }
+
+        function getElementMinSize(element) {
+            if (!element) {
+                return { width: 3, height: 3 };
+            }
+
+            if (element.type === 'text') {
+                const fontSize = Math.max(parseFloat(element.fontSize) || 2, 1);
+                return {
+                    width: Math.max(1, Math.round(fontSize * 0.8 * 10) / 10),
+                    height: Math.max(1, Math.round(measureTextHeightMm(element, element.width || 1) * 10) / 10)
+                };
+            }
+
+            if (element.type === 'barcode') {
+                return { width: 8, height: 3 };
+            }
+
+            if (element.type === 'image') {
+                return { width: 5, height: 5 };
+            }
+
+            return { width: 3, height: 3 };
+        }
+
+        function clearAlignmentGuides() {
+            alignmentGuides.forEach((guide) => guide.remove());
+            alignmentGuides = [];
+        }
+
+        function createAlignmentGuide(orientation, xPx, yPx, lengthPx) {
+            const canvas = document.getElementById('label-canvas');
+            const guide = document.createElement('div');
+            guide.className = `alignment-guide ${orientation}`;
+
+            if (orientation === 'vertical') {
+                guide.style.left = `${xPx}px`;
+                guide.style.top = `${yPx}px`;
+                guide.style.height = `${lengthPx}px`;
+            } else {
+                guide.style.left = `${xPx}px`;
+                guide.style.top = `${yPx}px`;
+                guide.style.width = `${lengthPx}px`;
+            }
+
+            canvas.appendChild(guide);
+            alignmentGuides.push(guide);
+        }
+
+        function getElementAlignmentPoints(element, overrideX = null, overrideY = null) {
+            const x = overrideX !== null ? overrideX : element.x;
+            const y = overrideY !== null ? overrideY : element.y;
+            const width = element.width;
+            const height = element.height;
+
+            return {
+                vertical: [
+                    { key: 'left', value: x },
+                    { key: 'center', value: x + width / 2 },
+                    { key: 'right', value: x + width }
+                ],
+                horizontal: [
+                    { key: 'top', value: y },
+                    { key: 'middle', value: y + height / 2 },
+                    { key: 'bottom', value: y + height }
+                ]
+            };
+        }
+
+        function getAlignmentGuideMatches(activeElementId, candidateX, candidateY) {
+            const movingElement = elements.find((el) => el.id === activeElementId);
+            if (!movingElement) {
+                return { verticalMatch: null, horizontalMatch: null };
+            }
+
+            const activePoints = getElementAlignmentPoints(movingElement, candidateX, candidateY);
+            let verticalMatch = null;
+            let horizontalMatch = null;
+
+            elements.forEach((element) => {
+                if (element.id === activeElementId) {
+                    return;
+                }
+
+                const points = getElementAlignmentPoints(element);
+
+                activePoints.vertical.forEach((activePoint) => {
+                    points.vertical.forEach((point) => {
+                        const delta = Math.abs(activePoint.value - point.value);
+                        if (delta > ALIGNMENT_THRESHOLD_MM) {
+                            return;
+                        }
+
+                        if (!verticalMatch || delta < verticalMatch.delta) {
+                            verticalMatch = {
+                                delta: delta,
+                                x: point.value,
+                                snapX: candidateX + (point.value - activePoint.value),
+                                top: Math.min(candidateY, element.y),
+                                bottom: Math.max(candidateY + movingElement.height, element.y + element.height)
+                            };
+                        }
+                    });
+                });
+
+                activePoints.horizontal.forEach((activePoint) => {
+                    points.horizontal.forEach((point) => {
+                        const delta = Math.abs(activePoint.value - point.value);
+                        if (delta > ALIGNMENT_THRESHOLD_MM) {
+                            return;
+                        }
+
+                        if (!horizontalMatch || delta < horizontalMatch.delta) {
+                            horizontalMatch = {
+                                delta: delta,
+                                y: point.value,
+                                snapY: candidateY + (point.value - activePoint.value),
+                                left: Math.min(candidateX, element.x),
+                                right: Math.max(candidateX + movingElement.width, element.x + element.width)
+                            };
+                        }
+                    });
+                });
+            });
+
+            return { verticalMatch, horizontalMatch };
+        }
+
+        function applyGuideSnap(candidateX, candidateY, matches) {
+            let snappedX = candidateX;
+            let snappedY = candidateY;
+
+            if (matches && matches.verticalMatch) {
+                snappedX = matches.verticalMatch.snapX;
+            }
+
+            if (matches && matches.horizontalMatch) {
+                snappedY = matches.horizontalMatch.snapY;
+            }
+
+            return { x: snappedX, y: snappedY };
+        }
+
+        function updateAlignmentGuides(matches) {
+            clearAlignmentGuides();
+
+            if (!matches) {
+                return;
+            }
+
+            const { verticalMatch, horizontalMatch } = matches;
+
+            if (verticalMatch) {
+                createAlignmentGuide(
+                    'vertical',
+                    verticalMatch.x * baseScale,
+                    verticalMatch.top * baseScale,
+                    (verticalMatch.bottom - verticalMatch.top) * baseScale
+                );
+            }
+
+            if (horizontalMatch) {
+                createAlignmentGuide(
+                    'horizontal',
+                    horizontalMatch.left * baseScale,
+                    horizontalMatch.y * baseScale,
+                    (horizontalMatch.right - horizontalMatch.left) * baseScale
+                );
+            }
+        }
+
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', (event) => {
+                const isUndoShortcut = (event.ctrlKey || event.metaKey) &&
+                    !event.shiftKey &&
+                    (event.code === 'KeyZ' || String(event.key || '').toLowerCase() === 'z');
+                if (!isUndoShortcut) {
+                    return;
+                }
+
+                const target = event.target;
+                const isTypingField = target &&
+                    (
+                        target.tagName === 'TEXTAREA' ||
+                        target.isContentEditable ||
+                        (target.tagName === 'INPUT' && target.type !== 'number')
+                    );
+
+                if (isTypingField) {
+                    return;
+                }
+
+                event.preventDefault();
+                undoLastAction();
+            });
+        }
+
+        function deselectElement(event) {
+            // Снимаем выделение при клике на пустое место canvas
+            if (event.target === document.getElementById('label-canvas')) {
+                if (selectedElement) {
+                    const prevSelected = document.getElementById(`element-${selectedElement}`);
+                    if (prevSelected) {
+                        prevSelected.classList.remove('selected');
+                    }
+                    selectedElement = null;
+                    document.getElementById('properties-panel').style.display = 'none';
+                    updateElementsList();
+                }
+            }
+        }
+
+        function toggleGrid() {
+            const container = document.querySelector('.canvas-container');
+            const showGrid = document.getElementById('show-grid').checked;
+            
+            if (showGrid) {
+                container.classList.add('grid-active');
+            } else {
+                container.classList.remove('grid-active');
+            }
+        }
+
+        function initCanvas() {
+            const canvas = document.getElementById('label-canvas');
+            canvas.addEventListener('dragover', (e) => e.preventDefault());
+            canvas.addEventListener('drop', handleCanvasDrop);
+            updateCanvasSize(true);
+        }
+
+        function initPanAndZoom() {
+            const viewport = document.getElementById('canvas-viewport');
+            
+            // Zoom with Ctrl+Wheel
+            viewport.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    
+                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                    const newZoom = Math.min(5, Math.max(0.5, viewportZoom * delta));
+                    
+                    const rect = viewport.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+                    
+                    const oldZoom = viewportZoom;
+                    viewportZoom = newZoom;
+                    
+                    const scaleChange = viewportZoom / oldZoom;
+                    viewport.scrollLeft = (viewport.scrollLeft + mouseX) * scaleChange - mouseX;
+                    viewport.scrollTop = (viewport.scrollTop + mouseY) * scaleChange - mouseY;
+                    
+                    applyViewportTransform();
+                }
+            });
+            
+            // Global mouse events for panning
+            document.addEventListener('mousemove', (e) => {
+                if (panState.isPanning) {
+                    e.preventDefault();
+                    
+                    const dx = e.clientX - panState.startX;
+                    const dy = e.clientY - panState.startY;
+                    
+                    const viewport = document.getElementById('canvas-viewport');
+                    viewport.scrollLeft = panState.scrollLeft - dx;
+                    viewport.scrollTop = panState.scrollTop - dy;
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (panState.isPanning) {
+                    panState.isPanning = false;
+                    const viewport = document.getElementById('canvas-viewport');
+                    viewport.classList.remove('panning');
+                }
+            });
+        }
+
+        function startPan(event) {
+            // Запускаем панорамирование только если кликнули на пустую область (viewport или canvas)
+            if (event.target === document.getElementById('canvas-viewport') || 
+                event.target === document.getElementById('label-canvas')) {
+                
+                event.preventDefault();
+                
+                const viewport = document.getElementById('canvas-viewport');
+                
+                panState.isPanning = true;
+                panState.startX = event.clientX;
+                panState.startY = event.clientY;
+                panState.scrollLeft = viewport.scrollLeft;
+                panState.scrollTop = viewport.scrollTop;
+                
+                viewport.classList.add('panning');
+            }
+        }
+
+        function applyViewportTransform() {
+            const canvas = document.getElementById('label-canvas');
+            canvas.style.transform = `scale(${viewportZoom})`;
+            updateCanvasInfo();
+        }
+
+        function zoomWithButtons(action) {
+            if (action === 'in') {
+                viewportZoom = Math.min(5, viewportZoom * 1.25);
+            } else if (action === 'out') {
+                viewportZoom = Math.max(0.5, viewportZoom * 0.8);
+            }
+            applyViewportTransform();
+        }
+
+        function resetView() {
+            viewportZoom = 1;
+            const viewport = document.getElementById('canvas-viewport');
+            viewport.scrollLeft = 0;
+            viewport.scrollTop = 0;
+            applyViewportTransform();
+        }
+
+        function fitToScreen() {
+            const viewport = document.getElementById('canvas-viewport');
+            const canvas = document.getElementById('label-canvas');
+            
+            const containerWidth = viewport.clientWidth;
+            const containerHeight = viewport.clientHeight;
+            const canvasWidth = canvas.offsetWidth;
+            const canvasHeight = canvas.offsetHeight;
+            
+            if (canvasWidth === 0 || canvasHeight === 0) return;
+            
+            const scaleX = (containerWidth - 40) / canvasWidth;
+            const scaleY = (containerHeight - 40) / canvasHeight;
+            viewportZoom = Math.min(scaleX, scaleY, 2);
+            
+            viewport.scrollLeft = (canvasWidth * viewportZoom - containerWidth) / 2;
+            viewport.scrollTop = (canvasHeight * viewportZoom - containerHeight) / 2;
+            
+            applyViewportTransform();
+        }
+
+        function initDragAndDrop() {
+            const jsonUpload = document.getElementById('json-upload-area');
+            const jsonInput = document.getElementById('json-input');
+            
+            jsonUpload.addEventListener('click', () => jsonInput.click());
+            
+            jsonUpload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                jsonUpload.classList.add('dragover');
+            });
+            
+            jsonUpload.addEventListener('dragleave', () => {
+                jsonUpload.classList.remove('dragover');
+            });
+            
+            jsonUpload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                jsonUpload.classList.remove('dragover');
+                
+                const file = e.dataTransfer.files[0];
+                if (file && file.name.endsWith('.json')) {
+                    readJSONFile(file);
+                } else {
+                    showStatus('Загрузите JSON файл', 'error');
+                }
+            });
+            
+            jsonInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) readJSONFile(file);
+            });
+        }
+
+        function readJSONFile(file) {
+            showStatus('Загрузка...', 'loading');
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    resetEditorCanvas();
+                    
+                    // Сначала обрабатываем форматы с готовыми elements/templateDefinition
+                    if (Array.isArray(data)) {
+                        loadElementsArray(data);
+                    } else if (data.templateDefinition && Array.isArray(data.templateDefinition.elements)) {
+                        loadTemplateDefinition(data.templateDefinition);
+                    } else if (Array.isArray(data.elements)) {
+                        loadTemplateDefinition({
+                            canvas: data.canvas || {
+                                width: data.size && data.size.width_mm,
+                                height: data.size && data.size.height_mm
+                            },
+                            elements: data.elements
+                        });
+                    } else if (data.canvas && Array.isArray(data.elements)) {
+                        loadTemplateDefinition(data);
+                    } else if (data.size || data.raw_text) {
+                        loadNewFormat(data);
+                    } else if (data.canvas) {
+                        loadTemplateDefinition(data);
+                    } else {
+                        loadTemplateDefinition(data);
+                    }
+                    
+                    clearHistory();
+                    showStatus('Загружено!', 'success');
+                    setTimeout(() => fitToScreen(), 100);
+                } catch (err) {
+                    showStatus('Ошибка: ' + err.message, 'error');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // Новый формат: { size, raw_text, ... }
+        function loadNewFormat(data) {
+            if (Array.isArray(data.elements)) {
+                loadTemplateDefinition({
+                    canvas: {
+                        width: data.size && data.size.width_mm,
+                        height: data.size && data.size.height_mm
+                    },
+                    elements: data.elements
+                });
+                return;
+            }
+
+            if (data.templateDefinition && Array.isArray(data.templateDefinition.elements)) {
+                loadTemplateDefinition(data.templateDefinition);
+                return;
+            }
+
+            // Устанавливаем размер холста
+            if (data.size) {
+                document.getElementById('canvas-width').value = data.size.width_mm || 46;
+                document.getElementById('canvas-height').value = data.size.height_mm || 46;
+                updateCanvasSize(true);
+            }
+
+            // Создаём текстовый элемент из raw_text (один большой блок)
+            if (data.raw_text) {
+                const canvasWidth = parseFloat(document.getElementById('canvas-width').value);
+                const canvasHeight = parseFloat(document.getElementById('canvas-height').value);
+                const margin = 2; // мм
+                addElement({
+                    type: 'text',
+                    exampleData: data.raw_text,
+                    x: margin,
+                    y: margin,
+                    width: canvasWidth - 2 * margin,
+                    height: canvasHeight - 2 * margin,
+                    fontSize: 2.0,
+                    align: 'L',
+                    fontBold: false,
+                    fontItalic: false
+                });
+            }
+
+            updateElementsList();
+        }
+
+        function loadTemplateDefinition(template) {
+            document.getElementById('label-canvas').innerHTML = '';
+            elements = [];
+            nextId = 1;
+            
+            // Устанавливаем размеры холста
+            if (template.canvas) {
+                document.getElementById('canvas-width').value = template.canvas.width || 58;
+                document.getElementById('canvas-height').value = template.canvas.height || 60;
+                updateCanvasSize(true);
+            }
+            
+            // Загружаем элементы с их исходными координатами
+            if (template.elements && Array.isArray(template.elements)) {
+                template.elements.forEach(el => {
+                    const element = {
+                        originalId: el.id || '',
+                        exportId: el.id || '',
+                        type: el.type || 'text',
+                        exampleData: el.exampleData || el.text || '',
+                        x: parseFloat(el.x) || 4,
+                        y: parseFloat(el.y) || 4,
+                        width: parseFloat(el.width) || 40,
+                        height: parseFloat(el.height) || 6,
+                        orientation: Number.isFinite(parseFloat(el.orientation)) ? parseFloat(el.orientation) : 0,
+                        borderWidth: Number.isFinite(parseFloat(el.borderWidth)) ? parseFloat(el.borderWidth) : 10,
+                        fontSize: parseFloat(el.fontSize) || 2.0,
+                        align: el.align || 'L',
+                        fontBold: el.fontBold || false,
+                        fontItalic: el.fontItalic || false,
+                        fontUppercase: el.fontUppercase || el.uppercase || false,
+                        code: el.code || '',
+                        verticalText: el.verticalText || false,
+                        lineSpacing: Number.isFinite(parseFloat(el.lineSpacing)) ? parseFloat(el.lineSpacing) : 1,
+                        isStatic: el.isStatic !== false,
+                        imageData: el.imageData || '',
+                        barcodeType: el.barcodeType || 'gs1-datamatrix',
+                        barcodePrintValue: el.barcodePrintValue !== false,
+                        fontId: el.fontId || '',
+                        fontFamily: el.fontFamily || ''
+                    };
+                    
+                    addElement(element);
+                });
+            }
+            
+            updateElementsList();
+        }
+
+        function loadElementsArray(elementsArray) {
+            document.getElementById('label-canvas').innerHTML = '';
+            elements = [];
+            nextId = 1;
+            
+            elementsArray.forEach(el => {
+                const element = {
+                    originalId: el.id || '',
+                    exportId: el.id || '',
+                    type: el.type || 'text',
+                    exampleData: el.exampleData || el.text || '',
+                    x: parseFloat(el.x) || 4,
+                    y: parseFloat(el.y) || 4,
+                    width: parseFloat(el.width) || 40,
+                    height: parseFloat(el.height) || 6,
+                    orientation: Number.isFinite(parseFloat(el.orientation)) ? parseFloat(el.orientation) : 0,
+                    borderWidth: Number.isFinite(parseFloat(el.borderWidth)) ? parseFloat(el.borderWidth) : 10,
+                    fontSize: parseFloat(el.fontSize) || 2.0,
+                    align: el.align || 'L',
+                    fontBold: el.fontBold || false,
+                    fontItalic: el.fontItalic || false,
+                    fontUppercase: el.fontUppercase || el.uppercase || false,
+                    code: el.code || '',
+                    verticalText: el.verticalText || false,
+                    lineSpacing: Number.isFinite(parseFloat(el.lineSpacing)) ? parseFloat(el.lineSpacing) : 1,
+                    isStatic: el.isStatic !== false,
+                    imageData: el.imageData || '',
+                    barcodeType: el.barcodeType || 'gs1-datamatrix',
+                    barcodePrintValue: el.barcodePrintValue !== false,
+                    fontId: el.fontId || '',
+                    fontFamily: el.fontFamily || ''
+                };
+                
+                addElement(element);
+            });
+            
+            updateElementsList();
+        }
+
+        function addElement(props = {}) {
+            let text = props.exampleData || props.text || '';
+            
+            const element = {
+                id: nextId++,
+                originalId: props.originalId || props.exportId || '',
+                exportId: props.exportId || props.originalId || '',
+                type: props.type || 'text',
+                x: parseFloat(props.x) || 4,
+                y: parseFloat(props.y) || 4,
+                width: parseFloat(props.width) || 40,
+                height: parseFloat(props.height) || 6,
+                orientation: Number.isFinite(parseFloat(props.orientation)) ? parseFloat(props.orientation) : 0,
+                borderWidth: Number.isFinite(parseFloat(props.borderWidth)) ? parseFloat(props.borderWidth) : 10,
+                fontSize: parseFloat(props.fontSize) || 2.0,
+                align: props.align || 'L',
+                fontBold: props.fontBold || false,
+                fontItalic: props.fontItalic || false,
+                fontUppercase: props.fontUppercase || props.uppercase || false,
+                code: props.code || '',
+                isStatic: props.isStatic !== false,
+                verticalText: props.verticalText || false,
+                lineSpacing: Number.isFinite(parseFloat(props.lineSpacing)) ? parseFloat(props.lineSpacing) : 1,
+                exampleData: text,
+                imageData: props.imageData || '',
+                barcodeType: props.barcodeType || 'gs1-datamatrix',
+                barcodePrintValue: props.barcodePrintValue !== false,
+                fontId: props.fontId || '',
+                fontFamily: props.fontFamily || ''
+            };
+            
+            elements.push(element);
+            renderElement(element);
+            
+            return element;
+        }
+
+        function renderElement(element) {
+            const canvas = document.getElementById('label-canvas');
+            
+            const div = document.createElement('div');
+            div.id = `element-${element.id}`;
+            div.className = `canvas-element`;
+            
+            div.style.left = (element.x * baseScale) + 'px';
+            div.style.top = (element.y * baseScale) + 'px';
+            div.style.width = (element.width * baseScale) + 'px';
+            div.style.height = (element.height * baseScale) + 'px';
+            
+            let content = '';
+            
+            switch(element.type) {
+                case 'text':
+                    const textConfig = getTextRenderConfig(element);
+                    const textAlign = element.align === 'L' ? 'left' : 
+                                     element.align === 'C' ? 'center' : 
+                                     element.align === 'R' ? 'right' : 'justify';
+                    
+                    const formattedText = (element.exampleData || '').replace(/\n/g, '<br>');
+                    
+                    content = `<div class="element-text" style="
+                        font-size: ${element.fontSize * baseScale}px;
+                        font-family: ${textConfig.fontFamily};
+                        font-weight: ${textConfig.fontWeight};
+                        font-style: ${textConfig.fontStyle};
+                        text-align: ${textAlign};
+                        text-transform: ${textConfig.textTransform};
+                        line-height: 1.2;
+                        word-break: break-word;
+                        overflow-wrap: break-word;
+                        hyphens: auto;
+                        padding: 0;
+                        margin: 0;
+                    ">${formattedText || '&nbsp;'}</div>`;
+                    break;
+                    
+                case 'image':
+                    content = `<img class="element-image" src="${element.imageData || ''}" alt="image">`;
+                    break;
+                    
+                case 'barcode':
+                    content = `<div class="element-barcode" style="padding: 0;">📊 ${element.exampleData || ''}</div>`;
+                    break;
+                    
+                default:
+                    content = `<div class="element-text">${element.exampleData || ''}</div>`;
+            }
+            
+            // Добавляем 8 маркеров изменения размера
+            const handles = `
+                <div class="resize-handle handle-nw" data-handle="nw"></div>
+                <div class="resize-handle handle-n" data-handle="n"></div>
+                <div class="resize-handle handle-ne" data-handle="ne"></div>
+                <div class="resize-handle handle-w" data-handle="w"></div>
+                <div class="resize-handle handle-e" data-handle="e"></div>
+                <div class="resize-handle handle-sw" data-handle="sw"></div>
+                <div class="resize-handle handle-s" data-handle="s"></div>
+                <div class="resize-handle handle-se" data-handle="se"></div>
+            `;
+            
+            div.innerHTML = content + handles;
+            
+            div.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                selectElement(element.id);
+                
+                if (e.target.classList.contains('resize-handle')) {
+                    startResize(e, element.id, e.target.dataset.handle);
+                } else {
+                    startDrag(e, element.id);
+                }
+            });
+            
+            div.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                selectElement(element.id);
+            });
+            
+            canvas.appendChild(div);
+            
+            if (selectedElement === element.id) {
+                div.classList.add('selected');
+            }
+        }
+
+        function startDrag(event, elementId) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            if (panState.isPanning) return;
+            
+            const element = elements.find(el => el.id === elementId);
+            if (!element) return;
+            
+            const canvas = document.getElementById('label-canvas');
+            const canvasRect = canvas.getBoundingClientRect();
+
+            pushHistory();
+            
+            dragState = {
+                isDragging: true,
+                elementId: elementId,
+                startX: event.clientX,
+                startY: event.clientY,
+                startElementX: element.x,
+                startElementY: element.y,
+                axisLock: null,
+                offsetX: event.clientX - canvasRect.left - (element.x * baseScale),
+                offsetY: event.clientY - canvasRect.top - (element.y * baseScale)
+            };
+            
+            document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('mouseup', onDragEnd);
+        }
+
+        function onDragMove(e) {
+            if (!dragState.isDragging) return;
+            
+            e.preventDefault();
+            
+            const element = elements.find(el => el.id === dragState.elementId);
+            if (!element) return;
+            
+            const canvas = document.getElementById('label-canvas');
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            let newX = (e.clientX - canvasRect.left - dragState.offsetX) / baseScale;
+            let newY = (e.clientY - canvasRect.top - dragState.offsetY) / baseScale;
+            
+            const maxX = (canvas.offsetWidth / baseScale) - element.width;
+            const maxY = (canvas.offsetHeight / baseScale) - element.height;
+
+            const snapToGuidesWhileDragging = e.shiftKey;
+            const snapToGridWhileDragging = e.ctrlKey || e.metaKey;
+            let guideMatches = getAlignmentGuideMatches(dragState.elementId, newX, newY);
+
+            if (snapToGuidesWhileDragging) {
+                const snappedPosition = applyGuideSnap(newX, newY, guideMatches);
+                newX = snappedPosition.x;
+                newY = snappedPosition.y;
+            }
+
+            if (snapToGridWhileDragging) {
+                newX = snapToGrid(newX);
+                newY = snapToGrid(newY);
+            }
+
+            element.x = clamp(newX, 0, maxX);
+            element.y = clamp(newY, 0, maxY);
+
+            guideMatches = getAlignmentGuideMatches(dragState.elementId, element.x, element.y);
+            updateAlignmentGuides(guideMatches);
+            
+            const div = document.getElementById(`element-${dragState.elementId}`);
+            if (div) {
+                div.style.left = (element.x * baseScale) + 'px';
+                div.style.top = (element.y * baseScale) + 'px';
+            }
+            
+            updatePropertiesPanel();
+        }
+
+        function onDragEnd() {
+            if (dragState.isDragging) {
+                dragState.isDragging = false;
+                clearAlignmentGuides();
+                document.removeEventListener('mousemove', onDragMove);
+                document.removeEventListener('mouseup', onDragEnd);
+                updateElementsList();
+            }
+        }
+
+        function startResize(event, elementId, handle) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            if (panState.isPanning) return;
+            
+            const element = elements.find(el => el.id === elementId);
+            if (!element) return;
+
+            pushHistory();
+            
+            resizeState = {
+                isResizing: true,
+                elementId: elementId,
+                handle: handle,
+                startX: event.clientX,
+                startY: event.clientY,
+                startWidth: element.width,
+                startHeight: element.height,
+                startLeft: element.x,
+                startTop: element.y
+            };
+            
+            document.addEventListener('mousemove', onResizeMove);
+            document.addEventListener('mouseup', onResizeEnd);
+        }
+
+        function onResizeMove(e) {
+            if (!resizeState.isResizing) return;
+            
+            e.preventDefault();
+            
+            const element = elements.find(el => el.id === resizeState.elementId);
+            if (!element) return;
+            
+            const canvas = document.getElementById('label-canvas');
+            const canvasWidth = canvas.offsetWidth / baseScale;
+            const canvasHeight = canvas.offsetHeight / baseScale;
+            
+            const dx = (e.clientX - resizeState.startX) / baseScale;
+            const dy = (e.clientY - resizeState.startY) / baseScale;
+            
+            let newWidth = resizeState.startWidth;
+            let newHeight = resizeState.startHeight;
+            let newX = resizeState.startLeft;
+            let newY = resizeState.startTop;
+            
+            const minSize = getElementMinSize(element);
+            
+            switch(resizeState.handle) {
+                case 'se':
+                    newWidth = Math.max(minSize.width, resizeState.startWidth + dx);
+                    newHeight = Math.max(minSize.height, resizeState.startHeight + dy);
+                    break;
+                case 'sw':
+                    newWidth = Math.max(minSize.width, resizeState.startWidth - dx);
+                    newHeight = Math.max(minSize.height, resizeState.startHeight + dy);
+                    newX = resizeState.startLeft + (resizeState.startWidth - newWidth);
+                    break;
+                case 'ne':
+                    newWidth = Math.max(minSize.width, resizeState.startWidth + dx);
+                    newHeight = Math.max(minSize.height, resizeState.startHeight - dy);
+                    newY = resizeState.startTop + (resizeState.startHeight - newHeight);
+                    break;
+                case 'nw':
+                    newWidth = Math.max(minSize.width, resizeState.startWidth - dx);
+                    newHeight = Math.max(minSize.height, resizeState.startHeight - dy);
+                    newX = resizeState.startLeft + (resizeState.startWidth - newWidth);
+                    newY = resizeState.startTop + (resizeState.startHeight - newHeight);
+                    break;
+                case 'n':
+                    newHeight = Math.max(minSize.height, resizeState.startHeight - dy);
+                    newY = resizeState.startTop + (resizeState.startHeight - newHeight);
+                    break;
+                case 's':
+                    newHeight = Math.max(minSize.height, resizeState.startHeight + dy);
+                    break;
+                case 'w':
+                    newWidth = Math.max(minSize.width, resizeState.startWidth - dx);
+                    newX = resizeState.startLeft + (resizeState.startWidth - newWidth);
+                    break;
+                case 'e':
+                    newWidth = Math.max(minSize.width, resizeState.startWidth + dx);
+                    break;
+            }
+            
+            // Ограничиваем границами канваса
+            if (newX < 0) {
+                newWidth += newX;
+                newX = 0;
+            }
+            if (newY < 0) {
+                newHeight += newY;
+                newY = 0;
+            }
+            if (newX + newWidth > canvasWidth) {
+                newWidth = canvasWidth - newX;
+            }
+            if (newY + newHeight > canvasHeight) {
+                newHeight = canvasHeight - newY;
+            }
+
+            if (element.type === 'text') {
+                const widthOnlyHandle = resizeState.handle === 'e' || resizeState.handle === 'w';
+                const heightOnlyHandle = resizeState.handle === 'n' || resizeState.handle === 's';
+                const requiredHeight = measureTextHeightMm(element, newWidth);
+
+                if (requiredHeight > newHeight) {
+                    if (widthOnlyHandle) {
+                        const fittedWidth = findMinWidthForTextHeight(
+                            element,
+                            newHeight,
+                            canvasWidth - newX
+                        );
+                        newWidth = Math.max(newWidth, fittedWidth);
+
+                        if (resizeState.handle === 'w') {
+                            newX = resizeState.startLeft + (resizeState.startWidth - newWidth);
+                        }
+                    } else {
+                        newHeight = Math.max(newHeight, requiredHeight);
+
+                        if (resizeState.handle === 'n' || resizeState.handle === 'ne' || resizeState.handle === 'nw') {
+                            newY = resizeState.startTop + (resizeState.startHeight - newHeight);
+                        }
+                    }
+                }
+
+                if (newX < 0) {
+                    newWidth += newX;
+                    newX = 0;
+                }
+                if (newY < 0) {
+                    newHeight += newY;
+                    newY = 0;
+                }
+                if (newX + newWidth > canvasWidth) {
+                    newWidth = canvasWidth - newX;
+                }
+                if (newY + newHeight > canvasHeight) {
+                    newHeight = canvasHeight - newY;
+                }
+            }
+            
+            newWidth = Math.max(minSize.width, Math.min(newWidth, canvasWidth - newX));
+            newHeight = Math.max(minSize.height, Math.min(newHeight, canvasHeight - newY));
+            
+            element.x = newX;
+            element.y = newY;
+            element.width = newWidth;
+            element.height = newHeight;
+            
+            const div = document.getElementById(`element-${resizeState.elementId}`);
+            if (div) {
+                div.style.left = (element.x * baseScale) + 'px';
+                div.style.top = (element.y * baseScale) + 'px';
+                div.style.width = (element.width * baseScale) + 'px';
+                div.style.height = (element.height * baseScale) + 'px';
+            }
+            
+            updatePropertiesPanel();
+        }
+
+        function onResizeEnd() {
+            if (resizeState.isResizing) {
+                resizeState.isResizing = false;
+                document.removeEventListener('mousemove', onResizeMove);
+                document.removeEventListener('mouseup', onResizeEnd);
+                updateElementsList();
+            }
+        }
+
+        function selectElement(elementId) {
+            if (selectedElement) {
+                const prevSelected = document.getElementById(`element-${selectedElement}`);
+                if (prevSelected) {
+                    prevSelected.classList.remove('selected');
+                }
+            }
+            
+            selectedElement = elementId;
+            
+            const selectedDiv = document.getElementById(`element-${elementId}`);
+            if (selectedDiv) {
+                selectedDiv.classList.add('selected');
+            }
+            
+            updatePropertiesPanel();
+            updateElementsList();
+        }
+
+        function updatePropertiesPanel() {
+            const panel = document.getElementById('properties-panel');
+            
+            if (!selectedElement) {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            const element = elements.find(el => el.id === selectedElement);
+            if (!element) return;
+            
+            panel.style.display = 'block';
+            
+            document.getElementById('prop-type').value = element.type || 'text';
+            document.getElementById('prop-x').value = element.x.toFixed(1);
+            document.getElementById('prop-y').value = element.y.toFixed(1);
+            document.getElementById('prop-width').value = element.width.toFixed(1);
+            document.getElementById('prop-height').value = element.height.toFixed(1);
+            document.getElementById('prop-fontsize').value = (element.fontSize || 2).toFixed(1);
+            document.getElementById('prop-fontfamily').value = element.fontFamily || fontMap[element.fontId] || 'Arial';
+            document.getElementById('prop-align').value = element.align || 'L';
+            document.getElementById('prop-bold').checked = element.fontBold || false;
+            document.getElementById('prop-italic').checked = element.fontItalic || false;
+            document.getElementById('prop-uppercase').checked = element.fontUppercase || false;
+            
+            const textGroup = document.getElementById('prop-text-group');
+            if (element.type === 'text') {
+                textGroup.style.display = 'block';
+                document.getElementById('prop-text').value = element.exampleData || '';
+            } else {
+                textGroup.style.display = 'none';
+            }
+        }
+
+        function updateSelectedProperty(prop, value) {
+            if (!selectedElement) return;
+            
+            const element = elements.find(el => el.id === selectedElement);
+            if (!element) return;
+
+            if (element[prop] === value) {
+                return;
+            }
+
+            pushHistory();
+            
+            element[prop] = value;
+            if (prop === 'fontFamily') {
+                element.fontId = fontIdMap[value] || '';
+            }
+
+            if (prop === 'x' || prop === 'y') {
+                const canvas = document.getElementById('label-canvas');
+                const canvasWidth = canvas.offsetWidth / baseScale;
+                const canvasHeight = canvas.offsetHeight / baseScale;
+                element.x = clamp(element.x, 0, canvasWidth - Math.min(element.width, canvasWidth));
+                element.y = clamp(element.y, 0, canvasHeight - Math.min(element.height, canvasHeight));
+            }
+
+            if (
+                element.type === 'text' &&
+                (
+                    prop === 'width' ||
+                    prop === 'height' ||
+                    prop === 'fontSize' ||
+                    prop === 'exampleData' ||
+                    prop === 'fontBold' ||
+                    prop === 'fontItalic' ||
+                    prop === 'fontUppercase' ||
+                    prop === 'fontFamily'
+                )
+            ) {
+                constrainTextElementSize(element);
+            }
+            
+            const oldDiv = document.getElementById(`element-${selectedElement}`);
+            if (oldDiv) oldDiv.remove();
+            
+            renderElement(element);
+            selectElement(selectedElement);
+        }
+
+        function deleteElement(elementId) {
+            const element = elements.find(el => el.id === elementId);
+            if (!element) return;
+
+            pushHistory();
+            elements = elements.filter(el => el.id !== elementId);
+            
+            const div = document.getElementById(`element-${elementId}`);
+            if (div) div.remove();
+            
+            if (selectedElement === elementId) {
+                selectedElement = null;
+                document.getElementById('properties-panel').style.display = 'none';
+            }
+            
+            updateElementsList();
+        }
+
+        function updateElementsList() {
+            const list = document.getElementById('elements-list');
+            list.innerHTML = '';
+            
+            elements.forEach(el => {
+                const div = document.createElement('div');
+                div.className = `element-item ${selectedElement === el.id ? 'selected' : ''}`;
+                div.onclick = () => selectElement(el.id);
+                
+                const icon = el.type === 'text' ? '📄' : el.type === 'image' ? '🖼️' : '📊';
+                const preview = el.type === 'text' ? (el.exampleData || '').substring(0, 25) : `${el.type}`;
+                
+                div.innerHTML = `
+                    <span class="element-icon">${icon}</span>
+                    <div class="element-info">
+                        <div class="element-title">${el.type} #${el.id}</div>
+                        <div class="element-preview">${preview}</div>
+                    </div>
+                    <div class="element-actions">
+                        <button class="element-btn delete" onclick="event.stopPropagation(); deleteElement(${el.id})">🗑️</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+            
+            document.getElementById('elements-count').textContent = elements.length;
+            scheduleSaveEditorState();
+        }
+
+        function addNewElement() {
+            pushHistory();
+            addElement({
+                type: 'text',
+                exampleData: 'Новый текст',
+                x: 10,
+                y: 10,
+                width: 40,
+                height: 6,
+                fontSize: 2.0
+            });
+            updateElementsList();
+        }
+
+        function updateCanvasSize(skipHistory = false) {
+            const canvas = document.getElementById('label-canvas');
+            const width = parseFloat(document.getElementById('canvas-width').value) * baseScale;
+            const height = parseFloat(document.getElementById('canvas-height').value) * baseScale;
+
+            if (!skipHistory && !isRestoringHistory) {
+                const currentWidth = parseFloat(canvas.style.width) / baseScale;
+                const currentHeight = parseFloat(canvas.style.height) / baseScale;
+                if (currentWidth !== width / baseScale || currentHeight !== height / baseScale) {
+                    pushHistory();
+                }
+            }
+            
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            
+            updateCanvasInfo();
+            rerenderAllElements();
+            if (!skipHistory) scheduleSaveEditorState();
+        }
+
+        function updateCanvasInfo() {
+            const info = document.getElementById('canvas-info');
+            const width = document.getElementById('canvas-width').value;
+            const height = document.getElementById('canvas-height').value;
+            info.textContent = `${width}×${height} мм • ${elements.length} эл. • ${Math.round(viewportZoom * 100)}%`;
+        }
+
+        function rerenderAllElements() {
+            const canvas = document.getElementById('label-canvas');
+            canvas.innerHTML = '';
+            
+            elements.forEach(el => {
+                renderElement(el);
+            });
+            
+            if (selectedElement) {
+                const selectedDiv = document.getElementById(`element-${selectedElement}`);
+                if (selectedDiv) {
+                    selectedDiv.classList.add('selected');
+                }
+            }
+        }
+
+        function exportElements() {
+            return elements.map((el, index) => {
+                const id = el.exportId || el.originalId || `${el.type || 'element'}_${Date.now()}_${index + 1}`;
+                const x = Math.round(el.x * 10) / 10;
+                const y = Math.round(el.y * 10) / 10;
+                const width = Math.round(el.width * 10) / 10;
+                const height = Math.round(el.height * 10) / 10;
+                const orientation = Number.isFinite(el.orientation) ? el.orientation : 0;
+
+                if (el.type === 'text') {
+                    return {
+                        id,
+                        code: el.code || '',
+                        type: el.type,
+                        x,
+                        y,
+                        width,
+                        height,
+                        orientation,
+                        exampleData: el.exampleData || '',
+                        fontSize: Math.round((el.fontSize || 2) * 10) / 10,
+                        align: el.align || 'L',
+                        fontBold: !!el.fontBold,
+                        fontItalic: !!el.fontItalic,
+                        verticalText: !!el.verticalText,
+                        lineSpacing: Number.isFinite(el.lineSpacing) ? el.lineSpacing : 1,
+                        isStatic: el.isStatic !== false
+                    };
+                }
+
+                if (el.type === 'image') {
+                    return {
+                        id,
+                        code: el.code || '',
+                        type: el.type,
+                        x,
+                        y,
+                        width,
+                        height,
+                        orientation,
+                        imageData: el.imageData || '',
+                        isStatic: el.isStatic !== false
+                    };
+                }
+
+                if (el.type === 'barcode') {
+                    return {
+                        id,
+                        type: el.type,
+                        x,
+                        y,
+                        width,
+                        height,
+                        code: el.code || '',
+                        orientation,
+                        barcodeType: el.barcodeType || 'gs1-datamatrix',
+                        exampleData: el.exampleData || '',
+                        barcodePrintValue: el.barcodePrintValue !== false,
+                        isStatic: el.isStatic !== false
+                    };
+                }
+
+                if (el.type === 'square' || el.type === 'line') {
+                    return {
+                        id,
+                        code: el.code || '',
+                        type: el.type,
+                        x,
+                        y,
+                        width,
+                        height,
+                        orientation,
+                        borderWidth: Number.isFinite(el.borderWidth) ? el.borderWidth : 10
+                    };
+                }
+
+                return {
+                    id,
+                    code: el.code || '',
+                    type: el.type,
+                    x,
+                    y,
+                    width,
+                    height,
+                    orientation
+                };
+            });
+        }
+
+        async function _saveWithPickerOrDownload(blob, suggestedName) {
+            if (window.showSaveFilePicker) {
+                const ext = suggestedName.split('.').pop().toLowerCase();
+                const typeMap = {
+                    json: { description: 'JSON', accept: { 'application/json': ['.json'] } },
+                    png: { description: 'PNG Image', accept: { 'image/png': ['.png'] } }
+                };
+                const pickerTypes = typeMap[ext] ? [typeMap[ext]] : undefined;
+                const handle = await window.showSaveFilePicker({
+                    suggestedName,
+                    types: pickerTypes,
+                    excludeAcceptAllOption: false
+                });
+                const writable = await handle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                return true;
+            }
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = suggestedName;
+            a.click();
+            URL.revokeObjectURL(url);
+            return false;
+        }
+
+        async function saveJSON() {
+            const width = parseFloat(document.getElementById('canvas-width').value);
+            const height = parseFloat(document.getElementById('canvas-height').value);
+            const exportedElements = exportElements();
+            const timestamp = Date.now();
+
+            const data = {
+                name: `label_${timestamp}`,
+                code: '',
+                templateDefinition: {
+                    canvas: {
+                        width: width,
+                        height: height
+                    },
+                    elements: exportedElements
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const filename = `label_${timestamp}.json`;
+            try {
+                await _saveWithPickerOrDownload(blob, filename);
+                showStatus('JSON saved', 'success');
+            } catch (err) {
+                console.error('JSON save error:', err);
+                showStatus('JSON save error', 'error');
+            }
+        }
+
+        async function saveAsPNG() {
+            showStatus('Создание PNG...', 'loading');
+            
+            const canvas = document.getElementById('label-canvas');
+            const container = document.querySelector('.canvas-container');
+            
+            try {
+                const hadGrid = container.classList.contains('grid-active');
+                if (hadGrid) {
+                    container.classList.remove('grid-active');
+                }
+                
+                const originalTransform = canvas.style.transform;
+                canvas.style.transform = 'scale(1)';
+                
+                const pngCanvas = await html2canvas(canvas, {
+                    scale: 4,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    allowTaint: false,
+                    useCORS: true,
+                    windowWidth: canvas.offsetWidth,
+                    windowHeight: canvas.offsetHeight,
+                    onclone: (clonedDoc) => {
+                        const clonedCanvas = clonedDoc.getElementById('label-canvas');
+                        if (clonedCanvas) {
+                            clonedCanvas.style.backgroundImage = 'none';
+                            const clonedElements = clonedCanvas.querySelectorAll('.canvas-element');
+                            clonedElements.forEach(el => {
+                                el.style.border = 'none';
+                                el.style.boxShadow = 'none';
+                                el.style.background = 'transparent';
+                                const handles = el.querySelectorAll('.resize-handle');
+                                handles.forEach(h => h.style.display = 'none');
+                            });
+                        }
+                    }
+                });
+                
+                canvas.style.transform = originalTransform;
+                if (hadGrid) {
+                    container.classList.add('grid-active');
+                }
+                
+                const dataUrl = pngCanvas.toDataURL('image/png');
+                const pngBlob = await (await fetch(dataUrl)).blob();
+                const filename = `label_${Date.now()}.png`;
+                await _saveWithPickerOrDownload(pngBlob, filename);
+
+                showStatus('PNG saved', 'success');
+            } catch (err) {
+                console.error('PNG error:', err);
+                showStatus('Ошибка создания PNG', 'error');
+            }
+        }
+
+        function loadJSON() {
+            document.getElementById('json-input').click();
+        }
+
+        function handleCanvasDrop(event) {
+            event.preventDefault();
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('json-status');
+            status.className = 'status-message ' + type;
+            status.textContent = message;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 2000);
+        }
+
+        function getRequestedLayoutId() {
+            const params = new URLSearchParams(window.location.search);
+            return (params.get('layout') || '').trim();
+        }
+
+        function cleanupActiveLayout() {
+            if (!activeLayoutId || layoutCleanupSent) {
+                return;
+            }
+
+            layoutCleanupSent = true;
+            const url = `/api/editor-layouts/${encodeURIComponent(activeLayoutId)}`;
+
+            try {
+                if (navigator.sendBeacon) {
+                    const blob = new Blob(['{}'], { type: 'application/json' });
+                    navigator.sendBeacon(url, blob);
+                    return;
+                }
+            } catch (err) {
+                console.error('sendBeacon cleanup failed:', err);
+            }
+
+            try {
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: '{}',
+                    keepalive: true
+                }).catch(() => {});
+            } catch (err) {
+                console.error('fetch cleanup failed:', err);
+            }
+        }
+
+        async function finalizeEditor() {
+            if (!activeLayoutId) {
+                window.close();
+                return;
+            }
+
+            const url = `/api/editor-layouts/${encodeURIComponent(activeLayoutId)}`;
+            layoutCleanupSent = true;
+
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: '{}',
+                    keepalive: true
+                });
+                showStatus('Временный JSON удален', 'success');
+            } catch (err) {
+                console.error('finalize cleanup failed:', err);
+                showStatus('Не удалось удалить временный JSON', 'error');
+                layoutCleanupSent = false;
+                return;
+            }
+
+            setTimeout(() => {
+                window.close();
+            }, 150);
+        }
+
+        function resetEditorCanvas() {
+            const canvas = document.getElementById('label-canvas');
+            if (canvas) {
+                canvas.innerHTML = '';
+            }
+            clearAlignmentGuides();
+            elements = [];
+            selectedElement = null;
+            nextId = 1;
+        }
+
+        function openEmptyEditor() {
+            resetEditorCanvas();
+            clearHistory();
+            document.getElementById('canvas-width').value = 58;
+            document.getElementById('canvas-height').value = 60;
+            updateCanvasSize(true);
+            document.querySelector('.preview-panel h2').innerHTML = '🖼️ Холст этикетки';
+            updateElementsList();
+            updatePropertiesPanel();
+            updateCanvasInfo();
+            setTimeout(() => fitToScreen(), 100);
+        }
+
+        function normalizeIncomingData(data) {
+            const payloadElements = Array.isArray(data.elements)
+                ? data.elements
+                : (data.templateDefinition && Array.isArray(data.templateDefinition.elements) ? data.templateDefinition.elements : []);
+
+            const payloadSize = data.size || (data.templateDefinition ? {
+                width_mm: data.templateDefinition.canvas && data.templateDefinition.canvas.width,
+                height_mm: data.templateDefinition.canvas && data.templateDefinition.canvas.height
+            } : null);
+
+            return {
+                elements: payloadElements,
+                size: payloadSize,
+                variantInfo: data.variant_info || null
+            };
+        }
+
+        async function loadLayoutFromServer(layoutId) {
+            const response = await fetch(`/api/editor-layouts/${encodeURIComponent(layoutId)}`, {
+                cache: 'no-store'
+            });
+            if (!response.ok) {
+                throw new Error(`Не удалось загрузить JSON (${response.status})`);
+            }
+
+            const data = await response.json();
+            loadEditorData(data);
+            return true;
+        }
+
+        async function bootEditor() {
+            initCanvas();
+            initDragAndDrop();
+            initPanAndZoom();
+            initKeyboardShortcuts();
+            updateCanvasInfo();
+            toggleGrid();
+
+            const layoutId = getRequestedLayoutId();
+            if (layoutId) {
+                activeLayoutId = layoutId;
+                layoutCleanupSent = false;
+                // Coming from generator — clear old editor state, load fresh
+                localStorage.removeItem(_EDITOR_STATE_KEY);
+                try {
+                    showStatus('Загрузка JSON из index.html...', 'loading');
+                    await loadLayoutFromServer(layoutId);
+                    return;
+                } catch (err) {
+                    console.error('Error loading remote layout:', err);
+                    showStatus('Ошибка загрузки JSON: ' + err.message, 'error');
+                }
+            }
+
+            // Restore previously saved editor state, or open empty
+            if (!restoreEditorStateFromStorage()) {
+                openEmptyEditor();
+            }
+        }
+
+        window.addEventListener('pagehide', cleanupActiveLayout);
+        window.addEventListener('beforeunload', cleanupActiveLayout);
+
+        function loadEditorData(data) {
+            console.log('loadEditorData вызван с данными:', data);
+            resetEditorCanvas();
+
+            const normalized = normalizeIncomingData(data);
+
+            if (normalized.size) {
+                document.getElementById('canvas-width').value = normalized.size.width_mm || 58;
+                document.getElementById('canvas-height').value = normalized.size.height_mm || 60;
+                updateCanvasSize(true);
+            }
+
+            if (normalized.elements.length) {
+                normalized.elements.forEach(el => {
+                    addElement(el);
+                });
+            }
+
+            if (normalized.variantInfo) {
+                const variantName = normalized.variantInfo.name || `Вариант ${normalized.variantInfo.index + 1}`;
+                const variantIndex = normalized.variantInfo.index + 1;
+                document.querySelector('h2').innerHTML = `🖼️ Холст этикетки - Вариант ${variantIndex}: ${variantName}`;
+                showStatus(`Загружен вариант ${variantIndex}: ${variantName}`, 'success');
+            } else {
+                document.querySelector('h2').innerHTML = '🖼️ Холст этикетки';
+                showStatus('JSON загружен', 'success');
+            }
+
+            updateElementsList();
+            updatePropertiesPanel();
+            updateCanvasInfo();
+            clearHistory();
+            setTimeout(() => fitToScreen(), 100);
+        }
+
+    </script>
+    <script>
+      // Heartbeat: пингуем сервер каждые 3 сек пока вкладка открыта.
+      // Сервер завершится сам когда все вкладки закроются и пинги прекратятся.
+      (function () {
+        function ping() { fetch('/api/heartbeat', { method: 'POST' }).catch(function () {}); }
+        ping();
+        setInterval(ping, 3000);
+      })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: labelflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: labelflow
+  template:
+    metadata:
+      labels:
+        app: labelflow
+    spec:
+      containers:
+        - name: labelflow
+          image: labelflow:1.0.2
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: labelflow-config
+            - secretRef:
+                name: labelflow-secrets

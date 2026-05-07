@@ -1,0 +1,3061 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/app-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/app-192.png">
+  <title>LabelFlow AI — Дизайн этикеток</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --surface: #ffffff;
+      --surface-alt: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-light: #64748b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08);
+      --shadow-lg: 0 4px 16px rgba(0,0,0,.10);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--surface-alt);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 14px;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── TOP BAR ──────────────────────────────── */
+    .topbar {
+      height: 46px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 14px;
+      display: flex; align-items: center; gap: 10px;
+      position: relative;
+    }
+    .topbar h1 { font-size: 17px; font-weight: 700; }
+    .badge { background: var(--primary); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    #btn-col1 {
+      margin-left: 2px; width: 28px; height: 28px;
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: 7px; cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #btn-col1:hover { background: var(--border); }
+    .tab-btn {
+      height: 28px; padding: 0 12px;
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 500;
+      display: flex; align-items: center;
+    }
+    .tab-btn:hover { background: var(--border); }
+    .tab-btn.active {
+      background: var(--primary); color: #fff; border-color: var(--primary);
+    }
+    .tab-btn.active:hover { background: var(--primary); }
+    #status-top { margin-left: auto; font-size: 12px; color: var(--text-light); display: flex; align-items: center; gap: 8px; }
+    .history-popover-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+    }
+    .history-trigger {
+      min-width: 128px;
+      justify-content: center;
+      gap: 8px;
+    }
+    .history-trigger-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: var(--primary-dark);
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .history-popover {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: min(420px, calc(100vw - 24px));
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      padding: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+    .history-popover.open { display: flex; }
+    .history-popover-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .history-popover-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--text-light);
+    }
+    .history-popover-close {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      justify-content: center;
+    }
+    .toast-layer {
+      position: fixed;
+      top: 64px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3000;
+      pointer-events: none;
+    }
+    .toast {
+      min-width: 220px;
+      max-width: min(420px, calc(100vw - 24px));
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, .92);
+      color: #fff;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, .24);
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(-8px) scale(.98);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .toast.error { background: rgba(127, 29, 29, .94); }
+
+    /* ── WORKSPACE ────────────────────────────── */
+    .workspace {
+      display: grid;
+      grid-template-columns: 400px 480px 1fr;
+      gap: 12px;
+      padding: 12px;
+      height: calc(100vh - 46px);
+      transition: grid-template-columns .2s ease;
+      overflow: hidden;
+    }
+    .workspace.col1-off { grid-template-columns: 0px 1fr 1fr; }
+
+    /* ── PANELS ───────────────────────────────── */
+    .panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); display: flex; flex-direction: column;
+      overflow: hidden; box-shadow: var(--shadow); min-width: 0;
+    }
+    .ph {
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+      font-weight: 600; font-size: 11px;
+      display: flex; align-items: center; gap: 6px;
+      background: #fafbfc; text-transform: uppercase; letter-spacing: .04em;
+      color: var(--text-light); flex-shrink: 0;
+    }
+    .ph .cnt { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .pb { flex: 1; overflow-y: auto; padding: 12px; }
+
+    /* ── BUTTONS ──────────────────────────────── */
+    .btn {
+      padding: 7px 12px; border: none; border-radius: 7px;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px;
+      transition: all .15s; line-height: 1.3;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-p  { background: var(--primary); color: #fff; }
+    .btn-p:hover:not(:disabled) { background: var(--primary-dark); }
+    .btn-s  { background: var(--surface-alt); border: 1px solid var(--border); color: var(--text); }
+    .btn-s:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn-ok { background: var(--success); color: #fff; }
+    .btn-ok:hover:not(:disabled) { filter: brightness(1.07); }
+    .bic {
+      width: 26px; height: 26px; padding: 0;
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 13px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text-light); transition: all .15s; flex-shrink: 0;
+    }
+    .bic:hover { border-color: var(--primary); color: var(--primary); }
+    .bic.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* ── FORM ─────────────────────────────────── */
+    .fl { display: block; font-size: 11px; font-weight: 600; color: var(--text-light); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .03em; }
+    select, textarea, input[type=text] {
+      width: 100%; padding: 7px 9px; border: 1px solid var(--border);
+      border-radius: 7px; font-size: 13px; font-family: inherit;
+      background: var(--surface); color: var(--text);
+    }
+    select:focus, textarea:focus, input:focus { outline: none; border-color: var(--primary); }
+    textarea { resize: vertical; }
+    .fg { margin-bottom: 10px; }
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .sep { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+    .ar { display: flex; gap: 7px; }
+    .ar .btn { flex: 1; justify-content: center; }
+
+    /* ── SYMBOL GRID ──────────────────────────── */
+    .sym-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+    .sym-chip {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 5px 2px; border: 1px solid var(--border); border-radius: 7px;
+      cursor: pointer; font-size: 10px; text-align: center; transition: all .12s;
+      user-select: none; overflow: hidden;
+    }
+    .sym-chip img { width: 24px; height: 24px; object-fit: contain; }
+    .sym-chip.on { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+    .sym-chip:hover:not(.on) { border-color: #94a3b8; }
+
+    /* ── BLOCK EDITOR ─────────────────────────── */
+    .blist { display: flex; flex-direction: column; gap: 0; }
+    .bcard {
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface); transition: border-color .15s;
+    }
+    .bcard:hover { border-color: #94a3b8; }
+    .bcard.hidden { opacity: .4; }
+    .bcard.drag-over { border-color: var(--primary); border-style: dashed; }
+    .bcard.dragging { opacity: .3; }
+
+    .bch {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 8px; border-bottom: 1px solid var(--border);
+      background: #fafbfc; border-radius: 8px 8px 0 0;
+    }
+    .dh { color: #aaa; cursor: grab; font-size: 13px; padding: 0 1px; user-select: none; }
+    .dh:active { cursor: grabbing; }
+    .bts { flex: 1; padding: 3px 6px; font-size: 11px; border-radius: 5px; }
+
+    .bcb { padding: 7px 8px; }
+    .btx { min-height: 42px; font-size: 12px; resize: none; overflow: hidden; line-height: 1.5; }
+
+    .badd-row {
+      position: relative;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 4px 0;
+    }
+    .badd-row::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      height: 1px;
+      background: var(--border);
+      opacity: .5;
+    }
+    .badd-btn {
+      opacity: 0;
+      pointer-events: none;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      transition: opacity .12s, border-color .12s, color .12s;
+      position: relative;
+      z-index: 1;
+    }
+    .badd-row:hover .badd-btn,
+    .badd-row:focus-within .badd-btn {
+      opacity: 1;
+      pointer-events: auto;
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .sr { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 6px; }
+    .sg { display: flex; gap: 3px; }
+
+    .slrow { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+    .slrow input[type=range] { flex: 1; height: 4px; accent-color: var(--primary); cursor: pointer; }
+    .sllbl { font-size: 11px; font-weight: 700; color: var(--primary); min-width: 28px; text-align: center; }
+
+    .frow { margin-top: 5px; }
+    .frow select { padding: 3px 6px; font-size: 11px; border-radius: 5px; }
+
+    .add-row { text-align: center; margin-top: 8px; }
+
+    /* ── COL3: PREVIEW + VARIANTS ─────────────── */
+    .col3 { display: flex; flex-direction: column; gap: 10px; overflow: hidden; min-width: 0; }
+
+    .preview-pane {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+    }
+    .preview-stage {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      background: #f4f4f5; overflow: hidden; padding: 12px; position: relative;
+    }
+    #pvwrap { display: none; overflow: hidden; }
+    .pv-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; gap: 10px;
+      color: var(--text-light); text-align: center; font-size: 13px;
+    }
+    .pv-empty .big { font-size: 42px; }
+
+    .variants-pane {
+      flex: 0 0 auto; max-height: 220px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden;
+    }
+    .vgrid { padding: 8px 10px; display: flex; gap: 8px; min-height: 0; }
+    .vt {
+      flex: 1; border: 2px solid var(--border); border-radius: 8px; overflow: hidden;
+      cursor: pointer; transition: border-color .15s, box-shadow .15s;
+      display: flex; flex-direction: column; min-width: 0;
+    }
+    .vt:hover { border-color: #94a3b8; }
+    .vt.sel { border-color: var(--primary); box-shadow: 0 0 0 2px #93c5fd; }
+    .vtn { font-size: 10px; font-weight: 600; text-align: center; padding: 4px; background: #fafbfc; border-bottom: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vti {
+      flex: 1; display: flex; align-items: flex-start; justify-content: center;
+      background: #f8f8f8; overflow: hidden; padding: 0; min-height: 0;
+      position: relative;
+    }
+
+    .dlrow { display: flex; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--border); align-items: center; }
+    .dlrow .btn { flex: 1; justify-content: center; font-size: 11px; }
+    .history-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .history-actions .btn {
+      flex: 0 0 auto;
+    }
+    .history-user {
+      font-size: 11px;
+      color: var(--text-light);
+    }
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .history-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .history-item-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .history-item-title {
+      font-size: 12px;
+      font-weight: 600;
+      word-break: break-word;
+    }
+    .history-item-meta {
+      font-size: 10px;
+      color: var(--text-light);
+      word-break: break-word;
+    }
+    .history-item-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .history-empty {
+      font-size: 11px;
+      color: var(--text-light);
+      text-align: center;
+      padding: 10px 4px;
+    }
+
+    /* ── STATUS ───────────────────────────────── */
+    .st { font-size: 11px; color: var(--text-light); padding: 4px 0; min-height: 22px; }
+    .st.err { color: var(--danger); }
+    .st.ok  { color: var(--success); }
+
+    /* ── AI MODAL ───────────────────────────────── */
+    .modal-overlay{
+      position:fixed; inset:0;
+      background:rgba(15,23,42,.45);
+      display:none; align-items:center; justify-content:center;
+      z-index:9999;
+    }
+    .modal{
+      width:min(520px, calc(100vw - 24px));
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow: var(--shadow-lg);
+      padding:14px 14px;
+      display:flex; gap:12px; align-items:center;
+    }
+    .spinner{
+      width:26px; height:26px;
+      border:3px solid #dbeafe;
+      border-top-color: var(--primary);
+      border-radius:50%;
+      animation:spin .9s linear infinite;
+      flex:0 0 auto;
+    }
+    @keyframes spin{ to { transform:rotate(360deg);} }
+    .modal-title{ font-weight:700; font-size:13px; }
+    .modal-sub{ color:var(--text-light); font-size:12px; margin-top:2px; }
+    .printx-import-modal{
+      width:min(860px, calc(100vw - 24px));
+      max-height:min(80vh, 720px);
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow: var(--shadow-lg);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .printx-import-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .printx-import-actions{
+      display:flex;
+      gap:8px;
+    }
+    .printx-import-list{
+      border:1px solid var(--border);
+      border-radius:10px;
+      overflow:auto;
+      min-height:180px;
+      max-height:52vh;
+      background:#fafbfc;
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .printx-template-item{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:10px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+    }
+    .printx-template-title{
+      font-weight:600;
+      font-size:13px;
+      word-break:break-word;
+    }
+    .printx-template-meta{
+      font-size:11px;
+      color:var(--text-light);
+      margin-top:4px;
+      word-break:break-word;
+    }
+    .printx-template-actions{
+      display:flex;
+      gap:8px;
+      flex:0 0 auto;
+    }
+    .printx-import-empty{
+      font-size:12px;
+      color:var(--text-light);
+      text-align:center;
+      padding:24px 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="tab-btn active">Генератор</button>
+  <button class="tab-btn" onclick="window.location.assign('/labelflow-editor/')">Редактор</button>
+  <button id="btn-col1" onclick="toggleCol1()" title="Свернуть/развернуть ввод">⬅</button>
+  <h1>LabelFlow</h1><span class="badge">AI v3.0</span>
+  <div class="history-popover-wrap">
+    <button class="tab-btn history-trigger" id="history-trigger" onclick="toggleHistoryPopover()">
+      История
+      <span class="history-trigger-count" id="history-trigger-count">0</span>
+    </button>
+    <div class="history-popover" id="history-popover">
+      <div class="history-popover-head">
+        <div class="history-popover-title">История этикеток</div>
+        <button class="btn btn-s history-popover-close" onclick="closeHistoryPopover()" title="Закрыть">✕</button>
+      </div>
+      <input id="history-name" type="text" placeholder="Название для сохранения">
+      <div class="history-actions">
+        <button class="btn btn-s" id="btn-history-save" onclick="saveCurrentLabelToHistory()">Сохранить</button>
+        <button class="btn btn-s" id="btn-history-refresh" onclick="loadLabelHistory()">Обновить</button>
+      </div>
+      <div class="history-user" id="history-user">История привязывается к пользователю PrintX</div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty">История пока пуста</div>
+      </div>
+    </div>
+  </div>
+  <div id="status-top">Готов к работе</div>
+  <div id="auth-pill" style="font-size:12px;color:var(--text-light);display:none"></div>
+  <button class="tab-btn" id="btn-auth-logout" onclick="logoutExternalAuth()" style="display:none">Выйти</button>
+  <button class="tab-btn" onclick="clearAllData()" title="Сбросить все данные">🗑 Очистить</button>
+</header>
+
+<div class="toast-layer">
+  <div class="toast" id="save-toast"></div>
+</div>
+
+<main class="workspace" id="ws">
+
+  <!-- COL 1: INPUT -->
+  <div class="panel" id="col1">
+    <div class="ph">✏ Ввод</div>
+    <div class="pb">
+
+      <div class="fg">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label class="fl" style="margin-bottom:0">Текст этикетки</label>
+          <button class="btn btn-s" style="padding:4px 8px;font-size:11px" onclick="loadExample()">Пример</button>
+        </div>
+        <textarea id="raw" rows="9" placeholder="Вставьте текст&#10;&#10;БРЕНД&#10;Название продукта&#10;Состав: ..."></textarea>
+      </div>
+
+      <div class="g2 fg">
+        <div>
+          <label class="fl">Размер</label>
+          <select id="sz" onchange="schedulePreview(); if(blocks.length) renderBlocks();"></select>
+        </div>
+        <div>
+          <label class="fl">QR-код</label>
+          <select id="qrpos" onchange="onQrPosChange()">
+            <option value="bottom_right">↘ Прав. низ</option>
+            <option value="bottom_left">↙ Лев. низ</option>
+            <option value="top_right">↗ Прав. верх</option>
+            <option value="top_left">↖ Лев. верх</option>
+            <option value="bottom_center">↓ Центр низ</option>
+          </select>
+        </div>
+        <div>
+          <label class="fl">Символы: позиция</label>
+          <select id="sympos" onchange="onSymPosChange()">
+            <option value="">— по варианту</option>
+            <option value="bottom_right">↘ Прав. низ</option>
+            <option value="bottom_left">↙ Лев. низ</option>
+            <option value="top_right">↗ Прав. верх</option>
+            <option value="top_left">↖ Лев. верх</option>
+            <option value="bottom_center">↓ Центр низ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Размер QR-кода</label>
+        <div class="slrow">
+          <input type="range" id="qrsize" min="60" max="140" value="100"
+                 oninput="onQrSizeChange(this.value)">
+          <span class="sllbl" id="qrsize-lbl">100%</span>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Размер символов</label>
+        <div class="slrow">
+          <input type="range" id="symsize" min="60" max="140" value="100"
+                 oninput="onSymSizeChange(this.value)">
+          <span class="sllbl" id="symsize-lbl">100%</span>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Символы / значки</label>
+        <div class="sym-grid" id="sym-grid">
+          <span style="color:var(--text-light);font-size:11px">Загрузка…</span>
+        </div>
+      </div>
+
+      <hr class="sep">
+      <div id="st-in" class="st"></div>
+      <div class="ar">
+        <button class="btn btn-s" id="btn-parse-local" onclick="parseBlocksLocal()">🧩 Разобрать</button>
+        <button class="btn btn-s" id="btn-parse" onclick="parseBlocksAI()">🤖 Разобрать (ИИ)</button>
+        <button class="btn btn-p" id="btn-gen"   onclick="generateAll()">✨ Разные варианты (ИИ)</button>
+      </div>
+      <div class="ar" style="margin-top:8px;">
+        <button class="btn btn-s" id="btn-open-editor" onclick="openBlankEditor()">🖌️ Редактор</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COL 2: BLOCK EDITOR -->
+  <div class="panel">
+    <div class="ph">🧩 Редактор блоков <span class="cnt" id="bcnt"></span></div>
+    <div class="pb" id="bpanel">
+      <div id="bempty" style="color:var(--text-light);font-size:12px;text-align:center;padding:20px 0">
+        Нажмите «Разобрать» (локально)<br>или «Разобрать (ИИ)» для редактирования блоков
+      </div>
+      <div class="blist" id="blist" style="display:none"></div>
+      <div class="add-row" id="addrow" style="display:none">
+        <button class="btn btn-s" style="font-size:11px" onclick="addBlock()">+ Добавить блок</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COL 3: PREVIEW + VARIANTS -->
+  <div class="col3">
+
+    <div class="preview-pane">
+      <div class="ph">🖼 Предпросмотр <span class="cnt" id="pvname"></span></div>
+      <div class="preview-stage" id="pvstage">
+        <div class="pv-empty" id="pvempty"><span class="big">🎨</span><span>Здесь появится этикетка</span></div>
+        <div id="pvwrap"></div>
+      </div>
+    </div>
+
+    <div class="variants-pane">
+      <div class="ph">4 варианта компоновки</div>
+      <div class="vgrid" id="vgrid">
+        <div class="vt" id="vt-0" onclick="selVariant(0)"><div class="vtn">—</div><div class="vti" id="vti-0"></div></div>
+        <div class="vt" id="vt-1" onclick="selVariant(1)"><div class="vtn">—</div><div class="vti" id="vti-1"></div></div>
+        <div class="vt" id="vt-2" onclick="selVariant(2)"><div class="vtn">—</div><div class="vti" id="vti-2"></div></div>
+        <div class="vt" id="vt-3" onclick="selVariant(3)"><div class="vtn">—</div><div class="vti" id="vti-3"></div></div>
+      </div>
+      <div class="dlrow">
+        <button class="btn btn-ok" id="dl-png" onclick="download('png')" disabled>⬇ PNG</button>
+        <button class="btn btn-s" id="btn-editor" onclick="createPrintXTemplate()" disabled>В PrintX</button>
+        <button class="btn btn-s" id="btn-import-printx" onclick="openPrintXImportModal()">Из PrintX</button>
+        <button class="btn btn-s" id="dl-json" onclick="downloadJSON()" disabled>⬇ JSON</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- AI modal -->
+<div class="modal-overlay" id="ai-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-live="polite">
+    <div class="spinner" id="ai-spin"></div>
+    <div>
+      <div class="modal-title" id="ai-title">Запрос отправлен</div>
+      <div class="modal-sub" id="ai-sub">Искусственный интеллект делает свою работу…</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="printx-import-modal" onclick="onPrintXImportOverlayClick(event)">
+  <div class="printx-import-modal" role="dialog" aria-modal="true" aria-labelledby="printx-import-title" onclick="event.stopPropagation()">
+    <div class="printx-import-head">
+      <div>
+        <div class="modal-title" id="printx-import-title">Шаблоны PrintX</div>
+        <div class="modal-sub">Выберите JSON-шаблон и откройте его в редакторе LabelFlow</div>
+        <div class="modal-sub" id="printx-import-count">Шаблонов: 0</div>
+      </div>
+      <div class="printx-import-actions">
+        <button class="btn btn-s" onclick="loadPrintXTemplates()">Обновить</button>
+        <button class="btn btn-s" onclick="closePrintXImportModal()">Закрыть</button>
+      </div>
+    </div>
+    <div class="printx-import-list" id="printx-import-list">
+      <div class="printx-import-empty">Загрузка списка шаблонов…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────
+// Предпросмотр: внутренний рендер в целочисленном масштабе мм→px.
+// Берем более крупный множитель, а влезание в панель делаем через scale.
+const PX_PER_MM = 20;
+const LABEL_W = 500;  // fallback, обычно W = round(width_mm * PX_PER_MM)
+// 100% QR = 70px when W=500 → 70/500 = 0.14
+const QR_SIZE_BASE = 0.14; // base QR size as fraction of width
+const SYM_SIZE_BASE = 0.09; // base symbol size as fraction of width
+let authConfig = { enabled: false };
+let appInitialized = false;
+// Точные размеры PNG по size_id (600 ppi), см. файл correct_sizes
+const SIZE_PX = {
+  '20x10':   { w: 472,  h: 236 },
+  '20x15':   { w: 472,  h: 354 },
+  '15x17':   { w: 354,  h: 401 },
+  '22x22':   { w: 519,  h: 519 },
+  '40x15':   { w: 944,  h: 354 },
+  '40x20':   { w: 944,  h: 472 },
+  '40x30':   { w: 944,  h: 708 },
+  '46x46':   { w: 1086, h: 1086 },
+  '48x20':   { w: 1133, h: 472 },
+  '48x30':   { w: 1133, h: 708 },
+  '48x40':   { w: 1133, h: 944 },
+  '55x35':   { w: 1299, h: 826 },
+  '58x60':   { w: 1370, h: 1417 },
+  '100x40':  { w: 2362, h: 944 },
+  '100x35':  { w: 2362, h: 826 },
+  '74x98':   { w: 1748, h: 2314 },
+  '99.5x99.5': { w: 2350, h: 2350 },
+};
+
+// ── STATE ──────────────────────────────────────────────────
+let blocks = [], blockTypes = {}, symList = [], selSyms = new Set();
+let selVar = 0, variantConfigs = [], variantsData = [], dragSrc = null, pvTimer = null;
+let sizesInfo = {};
+let labelHistoryItems = [];
+let labelHistoryUser = null;
+let saveToastTimer = null;
+let qrSizeScale = 1.0; // 100% по умолчанию
+let symSizeScale = 1.0; // 100% по умолчанию
+
+// Размер шрифта в мм: мин/макс от макета (высота макета в мм)
+function getMinFontMm() {
+  const sInfo = sizesInfo[sz()] || { height_mm: 46 };
+  return sInfo.height_mm / 60;
+}
+function getMaxFontMm() {
+  const sInfo = sizesInfo[sz()] || { height_mm: 46 };
+  return sInfo.height_mm / 15;
+}
+function getDefaultFontMm() {
+  const sInfo = sizesInfo[sz()] || { height_mm: 46 };
+  return sInfo.height_mm / 20;
+}
+function getTypeDefaultFontMm(type, heightMm) {
+  const scale = (heightMm || 46) / 46;
+  const baseByType = {
+    header: 2.0,
+    subheader: 1.5,
+    text: 1.0,
+    list_text: 1.0,
+    category: 1.0,
+    article: 1.0,
+    separator: 1.0,
+    custom: 1.0,
+  };
+  const base = baseByType[type] != null ? baseByType[type] : 1.0;
+  return base * scale;
+}
+function getBlockMmRange(b, heightMm) {
+  const minMm = (heightMm || 46) / 60;
+  const maxMm = (b && b.type === 'separator')
+    ? ((heightMm || 46) / 2)
+    : ((heightMm || 46) / 15);
+  return { minMm, maxMm };
+}
+function clampFontMm(mm) {
+  return Math.max(getMinFontMm(), Math.min(getMaxFontMm(), mm));
+}
+// Размер шрифта блока в мм:
+// - если font_size_mm уже задан, используем его;
+// - иначе берём типовой дефолт по типу блока.
+function getBlockFontMm(b, height_mm) {
+  const { minMm, maxMm } = getBlockMmRange(b, height_mm);
+  if (b && typeof b.font_size_mm === 'number' && isFinite(b.font_size_mm)) {
+    return Math.max(minMm, Math.min(maxMm, b.font_size_mm));
+  }
+  const typeDefault = getTypeDefaultFontMm((b && b.type) || 'text', height_mm);
+  return Math.max(minMm, Math.min(maxMm, typeDefault));
+}
+function normalizeBlockDefaults(list) {
+  const sInfo = sizesInfo[sz()] || { height_mm: 46 };
+  const h = sInfo.height_mm;
+  (list || []).forEach(b => {
+    if (!b || typeof b !== 'object') return;
+    if (b.lineSpacing == null || !isFinite(b.lineSpacing)) b.lineSpacing = 1;
+    if (b.type === 'separator') b.lineSpacing = 1;
+    if (b.pad_top_mm == null || !isFinite(b.pad_top_mm)) b.pad_top_mm = 0;
+    if (b.pad_right_mm == null || !isFinite(b.pad_right_mm)) b.pad_right_mm = 0;
+    if (b.pad_bottom_mm == null || !isFinite(b.pad_bottom_mm)) b.pad_bottom_mm = 0;
+    if (b.pad_left_mm == null || !isFinite(b.pad_left_mm)) b.pad_left_mm = 0;
+    if (b.font_size_mm == null || !isFinite(b.font_size_mm)) {
+      b.font_size_mm = getTypeDefaultFontMm(b.type || 'text', h);
+    }
+    const r = getBlockMmRange(b, h);
+    b.font_size_mm = Math.max(r.minMm, Math.min(r.maxMm, Number(b.font_size_mm)));
+  });
+}
+
+// ── INIT ───────────────────────────────────────────────────
+(async () => {
+  try {
+    authConfig = await requestJson('/api/auth/config', { skipAuthRedirect: true });
+  } catch (e) {
+    topStatus('Ошибка конфигурации авторизации');
+  }
+  if (authConfig.enabled) {
+    try {
+      const status = await requestJson('/api/auth/status', { skipAuthRedirect: true });
+      updateAuthUi(status);
+    } catch (e) {
+      topStatus('Сессия авторизации не найдена');
+    }
+  }
+  await initializeApp();
+})();
+
+async function initializeApp() {
+  if (appInitialized) return;
+  appInitialized = true;
+  authConfig.printx_activity_id = String(authConfig.printx_activity_id || '').trim();
+  syncPrintXActivityIdInput(authConfig.printx_activity_id);
+  await Promise.all([loadSizes(), loadBlockTypes(), loadSymbols()]);
+  if (!loadFromEditor()) restoreGeneratorState();
+  if (authConfig.enabled) {
+    await loadLabelHistory({ silent: true });
+  } else {
+    renderHistoryUser();
+    renderHistoryList();
+  }
+}
+
+function renderHistoryUser() {
+  const el = document.getElementById('history-user');
+  if (!el) return;
+  if (!authConfig.enabled) {
+    el.textContent = 'История доступна после включения авторизации PrintX';
+    return;
+  }
+  if (!labelHistoryUser) {
+    el.textContent = 'История привязывается к пользователю PrintX';
+    return;
+  }
+  const name = labelHistoryUser.display_name || labelHistoryUser.username || 'текущему пользователю';
+  const email = labelHistoryUser.email ? ` (${labelHistoryUser.email})` : '';
+  el.textContent = `История пользователя: ${name}${email}`;
+}
+
+function renderHistoryList() {
+  const listEl = document.getElementById('history-list');
+  const triggerCountEl = document.getElementById('history-trigger-count');
+  if (!listEl) return;
+  if (triggerCountEl) triggerCountEl.textContent = String(labelHistoryItems.length || 0);
+  if (!authConfig.enabled) {
+    listEl.innerHTML = '<div class="history-empty">Авторизация PrintX выключена</div>';
+    return;
+  }
+  if (!labelHistoryItems.length) {
+    listEl.innerHTML = '<div class="history-empty">История пока пуста</div>';
+    return;
+  }
+  listEl.innerHTML = labelHistoryItems.map((item) => {
+    const source = item.source === 'printx' ? 'PrintX' : 'ручное сохранение';
+    const dateText = formatHistoryDate(item.updated_at || item.created_at);
+    const templateText = item.printx_template_id ? ` • template ${esc(item.printx_template_id)}` : '';
+    return `
+      <div class="history-item">
+        <div class="history-item-head">
+          <div>
+            <div class="history-item-title">${esc(item.name || 'Без названия')}</div>
+            <div class="history-item-meta">${esc(item.size_id || '')} • ${esc(source)} • ${esc(dateText)}${templateText}</div>
+          </div>
+        </div>
+        <div class="history-item-actions">
+          <button class="btn btn-s" onclick="applyLabelHistory('${esc(item.id)}')">Открыть</button>
+          <button class="btn btn-s" onclick="deleteLabelHistory('${esc(item.id)}')">Удалить</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function formatHistoryDate(timestampSeconds) {
+  const value = Number(timestampSeconds || 0);
+  if (!value) return 'без даты';
+  const date = new Date(value * 1000);
+  if (Number.isNaN(date.getTime())) return 'без даты';
+  return date.toLocaleString('ru-RU');
+}
+
+function collectCurrentHistoryState() {
+  return {
+    raw: document.getElementById('raw').value || '',
+    sizeId: sz(),
+    qrpos: qrpos(),
+    sympos: sympos(),
+    qrSizeScale,
+    symSizeScale,
+    selSyms: [...selSyms],
+    blocks: JSON.parse(JSON.stringify(blocks || [])),
+    variantConfigs: JSON.parse(JSON.stringify(variantConfigs || [])),
+    variantsData: JSON.parse(JSON.stringify(variantsData || [])),
+    selVar,
+    printxActivityId: String(authConfig.printx_activity_id || '').trim(),
+  };
+}
+
+async function loadLabelHistory(options = {}) {
+  if (!authConfig.enabled) return;
+  try {
+    const resp = await requestJson('/api/label-history');
+    labelHistoryItems = Array.isArray(resp.items) ? resp.items : [];
+    labelHistoryUser = resp.user || null;
+    renderHistoryUser();
+    renderHistoryList();
+  } catch (e) {
+    if (!options.silent) topStatus('⚠ ' + (e.message || 'Ошибка загрузки истории'));
+    labelHistoryItems = [];
+    labelHistoryUser = null;
+    renderHistoryUser();
+    renderHistoryList();
+  }
+}
+
+async function saveCurrentLabelToHistory(options = {}) {
+  if (!authConfig.enabled) {
+    const msg = 'История доступна только после логина PrintX';
+    topStatus('⚠ ' + msg);
+    if (!options.silent) showSaveToast(msg, 'error');
+    return false;
+  }
+  if (!blocks.length) {
+    const msg = 'Сначала создайте этикетку';
+    topStatus('⚠ ' + msg);
+    if (!options.silent) showSaveToast(msg, 'error');
+    return false;
+  }
+
+  const nameInput = document.getElementById('history-name');
+  const defaultName = `${szNorm()} ${new Date().toLocaleString('ru-RU')}`;
+  const entryName = String((options.name != null ? options.name : (nameInput && nameInput.value)) || '').trim() || defaultName;
+  const payload = {
+    id: options.id || '',
+    name: entryName,
+    source: options.source || 'manual',
+    printx_template_id: options.printxTemplateId || '',
+    printx_activity_id: authConfig.printx_activity_id || '',
+    state: collectCurrentHistoryState(),
+  };
+
+  try {
+    const resp = await post('/api/label-history', payload);
+    if (!resp || !resp.success) {
+      throw new Error(resp && resp.error ? resp.error : 'Не удалось сохранить историю');
+    }
+    await loadLabelHistory({ silent: true });
+    if (nameInput && !options.keepName) nameInput.value = entryName;
+    if (!options.silent) {
+      topStatus('История обновлена');
+      showSaveToast(`Сохранено: ${entryName}`);
+    }
+    closeHistoryPopover();
+    return resp.item || true;
+  } catch (e) {
+    if (!options.silent) {
+      const msg = e.message || 'Ошибка сохранения истории';
+      topStatus('⚠ ' + msg);
+      showSaveToast(msg, 'error');
+    }
+    return false;
+  }
+}
+
+function applyHistoryState(state) {
+  if (!state || typeof state !== 'object') return;
+
+  document.getElementById('raw').value = state.raw || '';
+  if (state.sizeId) {
+    const sizeEl = document.getElementById('sz');
+    if (sizeEl) sizeEl.value = state.sizeId;
+  }
+  if (state.qrpos) document.getElementById('qrpos').value = state.qrpos;
+  document.getElementById('sympos').value = state.sympos || '';
+
+  qrSizeScale = Number(state.qrSizeScale || 1) || 1;
+  symSizeScale = Number(state.symSizeScale || 1) || 1;
+  const qrSlider = document.getElementById('qrsize');
+  const symSlider = document.getElementById('symsize');
+  const qrLabel = document.getElementById('qrsize-lbl');
+  const symLabel = document.getElementById('symsize-lbl');
+  if (qrSlider) qrSlider.value = Math.round(qrSizeScale * 100);
+  if (symSlider) symSlider.value = Math.round(symSizeScale * 100);
+  if (qrLabel) qrLabel.textContent = Math.round(qrSizeScale * 100) + '%';
+  if (symLabel) symLabel.textContent = Math.round(symSizeScale * 100) + '%';
+
+  selSyms = new Set(Array.isArray(state.selSyms) ? state.selSyms : []);
+  renderSymGrid();
+
+  blocks = Array.isArray(state.blocks) ? JSON.parse(JSON.stringify(state.blocks)) : [];
+  variantConfigs = Array.isArray(state.variantConfigs) ? JSON.parse(JSON.stringify(state.variantConfigs)) : [];
+  variantsData = Array.isArray(state.variantsData) ? JSON.parse(JSON.stringify(state.variantsData)) : [];
+  selVar = typeof state.selVar === 'number' ? state.selVar : 0;
+  normalizeBlockDefaults(blocks);
+  renderBlocks();
+
+  if (variantConfigs.length) {
+    renderThumbs();
+    document.querySelectorAll('.vt').forEach((c, j) => c.classList.toggle('sel', j === selVar));
+  } else {
+    ['vt-0', 'vt-1', 'vt-2', 'vt-3'].forEach((id) => {
+      const card = document.getElementById(id);
+      if (card) card.classList.remove('sel');
+    });
+  }
+
+  authConfig.printx_activity_id = String(state.printxActivityId || '').trim();
+  syncPrintXActivityIdInput(authConfig.printx_activity_id);
+
+  setDl(blocks.length > 0);
+  schedulePreview();
+  scheduleSaveState();
+}
+
+async function applyLabelHistory(entryId) {
+  try {
+    const resp = await requestJson(`/api/label-history/${encodeURIComponent(entryId)}`);
+    if (!resp || !resp.success || !resp.item) {
+      throw new Error(resp && resp.error ? resp.error : 'Запись истории не найдена');
+    }
+    const item = resp.item;
+    applyHistoryState(item.state || {});
+    const input = document.getElementById('history-name');
+    if (input) input.value = item.name || '';
+    closeHistoryPopover();
+    topStatus(`Загружена история: ${item.name || 'Без названия'}`);
+  } catch (e) {
+    topStatus('⚠ ' + (e.message || 'Ошибка загрузки истории'));
+  }
+}
+
+async function deleteLabelHistory(entryId) {
+  if (!confirm('Удалить запись из истории?')) return;
+  try {
+    const resp = await requestJson(`/api/label-history/${encodeURIComponent(entryId)}`, { method: 'DELETE' });
+    if (!resp || !resp.success) {
+      throw new Error(resp && resp.error ? resp.error : 'Не удалось удалить запись');
+    }
+    await loadLabelHistory({ silent: true });
+    topStatus('Запись истории удалена');
+  } catch (e) {
+    topStatus('⚠ ' + (e.message || 'Ошибка удаления записи'));
+  }
+}
+
+function updateAuthUi(status) {
+  const pill = document.getElementById('auth-pill');
+  const logoutBtn = document.getElementById('btn-auth-logout');
+  if (!status || !status.enabled) {
+    pill.style.display = 'none';
+    logoutBtn.style.display = 'none';
+    labelHistoryItems = [];
+    labelHistoryUser = null;
+    renderHistoryUser();
+    renderHistoryList();
+    return;
+  }
+  pill.style.display = '';
+  logoutBtn.style.display = '';
+  if (status.authenticated) {
+    const profile = status.profile || {};
+    const displayName = profile.fullName || profile.username || status.username || '';
+    const email = profile.email ? ` (${profile.email})` : '';
+    const userText = displayName ? ` ${displayName}${email}` : '';
+    const tokenText = status.token_masked ? ` • ${status.token_masked}` : '';
+    const envText = status.auth_environment_label ? ` [${status.auth_environment_label}]` : '';
+    pill.textContent = `ETG${envText}:${userText}${tokenText}`;
+    labelHistoryUser = {
+      username: status.username || '',
+      display_name: displayName || status.username || '',
+      email: profile.email || '',
+    };
+  } else {
+    pill.textContent = `ETG${status.auth_environment_label ? ` [${status.auth_environment_label}]` : ''}: не авторизован`;
+  }
+  if (!(status && status.authenticated)) {
+    labelHistoryItems = [];
+    labelHistoryUser = null;
+    renderHistoryList();
+  }
+  renderHistoryUser();
+}
+
+async function logoutExternalAuth() {
+  try {
+    await post('/api/auth/logout', {}, { skipAuthRedirect: true });
+  } catch (e) {}
+  labelHistoryItems = [];
+  labelHistoryUser = null;
+  renderHistoryUser();
+  renderHistoryList();
+  updateAuthUi({ enabled: true, authenticated: false });
+  const next = encodeURIComponent(window.location.pathname + window.location.search);
+  window.location.assign(`/login?next=${next}`);
+}
+
+async function requestJson(url, options = {}) {
+  const response = await fetch(url, { credentials: 'same-origin', ...options });
+  let data = {};
+  try { data = await response.json(); } catch (e) {}
+  if (response.status === 401 && !options.skipAuthRedirect) {
+    updateAuthUi({ enabled: true, authenticated: false });
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.assign(`/login?next=${next}`);
+    throw new Error((data && data.error) || 'Требуется авторизация');
+  }
+  if (!response.ok) {
+    throw new Error((data && data.error) || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+async function loadSizes() {
+  try {
+    const d = await requestJson('/api/status');
+    const s = document.getElementById('sz');
+    (d.available_sizes||[]).forEach(x => {
+      sizesInfo[x.id] = x;
+      const o = document.createElement('option');
+      o.value = x.id; o.textContent = x.name;
+      if (x.id === '46x46') o.selected = true;
+      s.appendChild(o);
+    });
+    // legacy aliases for existing payloads
+    if (sizesInfo['100x40']) sizesInfo['40x100'] = sizesInfo['100x40'];
+    if (sizesInfo['100x35']) sizesInfo['35x100'] = sizesInfo['100x35'];
+  } catch(e){}
+}
+async function loadBlockTypes() {
+  try { const d = await requestJson('/api/block-types'); blockTypes = d.block_types||{}; }
+  catch(e){}
+}
+async function loadSymbols() {
+  try {
+    const d = await requestJson('/api/symbols');
+    symList = d.symbols||[];
+    renderSymGrid();
+  } catch(e) {
+    document.getElementById('sym-grid').innerHTML = '<span style="font-size:11px;color:var(--text-light)">Нет символов</span>';
+  }
+}
+function renderSymGrid() {
+  const g = document.getElementById('sym-grid');
+  if (!symList.length) { g.innerHTML = '<span style="font-size:11px;color:var(--text-light)">Нет символов</span>'; return; }
+  g.innerHTML = symList.map(s => `
+    <div class="sym-chip${selSyms.has(s.id)?' on':''}" onclick="togSym('${s.id}')" title="${esc(s.label)}">
+      <img src="${s.image_url}" alt="" onerror="this.style.display='none'">
+      <span>${esc(s.label)}</span>
+    </div>`).join('');
+}
+function togSym(id) { selSyms.has(id)?selSyms.delete(id):selSyms.add(id); renderSymGrid(); schedulePreview(); }
+
+// ── COL1 TOGGLE ────────────────────────────────────────────
+let col1Open = true;
+function toggleCol1() {
+  col1Open = !col1Open;
+  document.getElementById('ws').classList.toggle('col1-off', !col1Open);
+  document.getElementById('btn-col1').textContent = col1Open ? '⬅' : '➡';
+}
+
+// ── PARSE ──────────────────────────────────────────────────
+
+// Локальный разбор без обращения к серверу / ИИ
+function parseBlocksLocal() {
+  const text = document.getElementById('raw').value.trim();
+  if (!text) { setSt('in','err','Введите текст'); return; }
+
+  // Упрощённый локальный парсер под новую структуру блоков
+  const rawLines = text.split(/\r?\n/);
+  const RE_ARTICLE = /^(арт\.|art\.|артикул\b)/i;
+  const RE_BULLET  = /^[-–—•*]\s*\S/;
+  const RE_ALL_CAPS = /^[А-ЯA-ZЁ\s\d\-–/&,.!]+$/;
+
+  const DEFAULT = {
+    category:  {bold:false, uppercase:false, align:'left'},
+    header:    {bold:true,  uppercase:false, align:'center'},
+    subheader: {bold:true,  uppercase:false, align:'center'},
+    text:      {bold:false, uppercase:false, align:'left'},
+    list_text: {bold:true,  uppercase:false, align:'left'},
+    separator: {bold:false, uppercase:false, align:'left'},
+    article:   {bold:false, uppercase:false, align:'left'},
+  };
+
+  const out = [];
+  let listBuf = [];
+  let textBuf = [];
+  let blankStreak = 0;
+  let categoryDone = false, headerDone = false, subheaderDone = false;
+
+  function makeBlock(type, t) {
+    const d = DEFAULT[type] || DEFAULT.text;
+    const sInfo = sizesInfo[sz()] || { height_mm: 46 };
+    const fontMm = getTypeDefaultFontMm(type, sInfo.height_mm);
+    const obj = {
+      id: 'loc_' + Math.random().toString(36).slice(2,10),
+      type,
+      text: (t||'').trim(),
+      bold: d.bold,
+      italic: false,
+      uppercase: d.uppercase,
+      align: d.align,
+      font: 'Arial',
+      font_size_mm: fontMm,
+      lineSpacing: 1,
+      visible: true,
+    };
+    if (type === 'list_text') obj.list_mode = true;
+    out.push(obj);
+  }
+  function flushText() {
+    if (textBuf.length) { makeBlock('text', textBuf.join('\n')); textBuf = []; }
+  }
+  function flushList() {
+    if (listBuf.length) { makeBlock('list_text', listBuf.join('\n')); listBuf = []; }
+  }
+
+  for (const raw of rawLines) {
+    const ln = (raw||'').trim();
+    if (!ln) {
+      blankStreak++;
+      flushList(); flushText();
+      if (!out.length || out[out.length-1].type !== 'separator') makeBlock('separator', ' ');
+      continue;
+    }
+    blankStreak = 0;
+
+    if (RE_ARTICLE.test(ln)) { flushList(); flushText(); makeBlock('article', ln); continue; }
+    if (RE_BULLET.test(ln)) { flushText(); listBuf.push(ln); continue; }
+    flushList();
+
+    if (!categoryDone && ln.length <= 40) { makeBlock('category', ln); categoryDone = true; continue; }
+    if (!headerDone && (RE_ALL_CAPS.test(ln) || ln.length <= 55)) { makeBlock('header', ln); headerDone = true; continue; }
+    if (!subheaderDone && ln.length <= 90) { makeBlock('subheader', ln); subheaderDone = true; continue; }
+
+    textBuf.push(ln);
+  }
+  flushList(); flushText();
+
+  // убрать separator в конце
+  while (out.length && out[out.length-1].type === 'separator') out.pop();
+
+  blocks = out.filter(b => (b.text||'').length>0 || b.type==='separator');
+  normalizeBlockDefaults(blocks);
+  resetVariantsToClassic();
+  renderBlocks();
+  setSt('in','ok',`Блоков (локально): ${blocks.length}`);
+  schedulePreview();
+}
+
+// Разбор через сервер / ИИ
+async function parseBlocksAI() {
+  const text = document.getElementById('raw').value.trim();
+  if (!text) { setSt('in','err','Введите текст'); return; }
+  setBtn('btn-parse', true);
+  setSt('in','','');
+  showAIModal('loading');
+  try {
+    const d = await post('/api/parse-blocks', {text, size_id: szNorm()});
+    if (!d || !d.success || !Array.isArray(d.blocks) || d.blocks.length === 0) {
+      throw new Error(d && d.error ? d.error : 'ИИ не вернул ответ');
+    }
+    blocks = d.blocks||[];
+    normalizeBlockDefaults(blocks);
+    resetVariantsToClassic();
+    renderBlocks();
+    setSt('in','ok',`Блоков (ИИ): ${blocks.length}`);
+    schedulePreview();
+    hideAIModal();
+  } catch(e) {
+    // Покажем сообщение в модалке и сделаем fallback на локальный разбор
+    showAIModal('fallback');
+    setSt('in','err', e.message || 'Ошибка связи с ИИ');
+    await delay(1500);
+    hideAIModal();
+    try { parseBlocksLocal(); } catch(_) {}
+  } finally {
+    setBtn('btn-parse',false);
+    // не закрываем принудительно: hideAIModal() сам выдержит sticky-таймер
+  }
+}
+
+// Обратная совместимость: старое имя
+async function parseBlocks() {
+  return parseBlocksAI();
+}
+
+// ── RENDER BLOCK EDITOR ────────────────────────────────────
+function renderBlocks() {
+  const bempty = document.getElementById('bempty');
+  const blist  = document.getElementById('blist');
+  const addrow = document.getElementById('addrow');
+  const bcnt   = document.getElementById('bcnt');
+  if (!blocks.length) {
+    bempty.style.display=''; blist.style.display='none'; addrow.style.display='none'; bcnt.textContent=''; return;
+  }
+  bempty.style.display='none'; blist.style.display=''; addrow.style.display='';
+  bcnt.textContent = `${blocks.length} шт.`;
+  blist.innerHTML = blocks.map((b,i) =>
+    blockCard(b,i) + (i < blocks.length - 1 ? addBetweenRow(i + 1) : '')
+  ).join('');
+  setupDnd();
+  blist.querySelectorAll('.btx').forEach(autoR);
+}
+
+function addBetweenRow(insertIdx) {
+  return `<div class="badd-row"><button class="badd-btn" onclick="addBlockAt(${insertIdx})">+ Добавить блок</button></div>`;
+}
+
+function blockCard(b, i) {
+  const typeOpts = Object.entries(blockTypes).map(([k,v]) =>
+    `<option value="${k}"${b.type===k?' selected':''}>${v}</option>`).join('');
+  const fonts = ['Arial','Times New Roman','Courier New'];
+  const fOpts = fonts.map(f => `<option value="${f}"${b.font===f?' selected':''}>${f}</option>`).join('');
+  const sInfo = sizesInfo[sz()] || { height_mm: 46 };
+  const range = getBlockMmRange(b, sInfo.height_mm);
+  const minMm = range.minMm, maxMm = range.maxMm;
+  const fontMm = getBlockFontMm(b, sInfo.height_mm);
+  const aligns = [{v:'left',i:'⬅'},{v:'center',i:'↔'},{v:'right',i:'➡'}];
+  const hasBullets = b.text && b.text.split('\n').filter(l=>l.trim()).every(l => /^[-•*]\s/.test(l.trim()));
+  const lineSp = (b.lineSpacing != null && isFinite(b.lineSpacing)) ? b.lineSpacing : 1;
+  const padT = (b.pad_top_mm != null && isFinite(b.pad_top_mm)) ? b.pad_top_mm : 0;
+  const padR = (b.pad_right_mm != null && isFinite(b.pad_right_mm)) ? b.pad_right_mm : 0;
+  const padB = (b.pad_bottom_mm != null && isFinite(b.pad_bottom_mm)) ? b.pad_bottom_mm : 0;
+  const padL = (b.pad_left_mm != null && isFinite(b.pad_left_mm)) ? b.pad_left_mm : 0;
+  const isSeparator = b.type === 'separator';
+
+  return `<div class="bcard${b.visible?'':' hidden'}" id="bcard-${i}" data-i="${i}">
+  <div class="bch" draggable="true">
+    <span class="dh">⠿</span>
+    <select class="bts" onchange="upd(${i},'type',this.value)">${typeOpts}</select>
+    <button class="bic${!b.visible?' on':''}" onclick="upd(${i},'visible',${!b.visible})" title="Видимость">👁</button>
+    <button class="bic" style="color:var(--danger)" onclick="rmB(${i})" title="Удалить">✕</button>
+  </div>
+  <div class="bcb">
+    <textarea class="btx" ${isSeparator?'disabled':''} onchange="upd(${i},'text',this.value)" oninput="autoR(this);schedulePreview()">${esc(b.text)}</textarea>
+    ${isSeparator ? '<div style="margin-top:4px;font-size:10px;color:var(--text-light)">Разделитель: текст не печатается, значение «Размер, мм» задаёт высоту разрыва.</div>' : ''}
+    <div class="sr">
+      <div class="sg">
+        <button class="bic${b.bold?' on':''}"      onclick="upd(${i},'bold',${!b.bold})"       title="Жирный"><b>B</b></button>
+        <button class="bic${b.italic?' on':''}"    onclick="upd(${i},'italic',${!b.italic})"   title="Курсив"><i>I</i></button>
+        <button class="bic${b.uppercase?' on':''}" onclick="upd(${i},'uppercase',${!b.uppercase})" title="CAPS">AA</button>
+      </div>
+      <div class="sg">
+        ${aligns.map(a=>`<button class="bic${b.align===a.v?' on':''}" onclick="upd(${i},'align','${a.v}')" title="${a.v}">${a.i}</button>`).join('')}
+      </div>
+      <div class="sg" style="margin-left:auto">
+        <button class="bic${hasBullets?' on':''}" onclick="togBullets(${i})" title="Маркированный список">•≡</button>
+      </div>
+    </div>
+    <div class="slrow">
+      <span style="font-size:10px;color:var(--text-light);white-space:nowrap">Размер, мм</span>
+      <input type="range" id="fontmm-range-${i}" min="${minMm}" max="${maxMm}" step="0.1" value="${fontMm}"
+             oninput="updFontMm(${i},parseFloat(this.value))" title="Размер шрифта в мм">
+      <input type="number" class="sllbl" id="fontmm-inp-${i}" value="${fontMm.toFixed(1)}" min="${minMm}" max="${maxMm}" step="0.1" style="width:48px;padding:2px 4px;font-size:11px;text-align:center"
+             onchange="updFontMm(${i},parseFloat(this.value)||getDefaultFontMm())" title="Ввести размер в мм">
+    </div>
+    ${isSeparator ? '' : `<div class="slrow">
+      <span style="font-size:10px;color:var(--text-light);white-space:nowrap">Межстрочный интервал</span>
+      <input type="range" min="0.5" max="2" step="0.1" value="${lineSp}"
+             oninput="upd(${i},'lineSpacing',parseFloat(this.value));const l=document.getElementById('linesp-lbl-${i}');if(l)l.textContent=this.value;schedulePreview()" title="Интервал между строками">
+      <span class="sllbl" id="linesp-lbl-${i}">${lineSp}</span>
+    </div>`}
+    ${isSeparator ? '' : `<div class="frow">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:10px;color:var(--text-light)">Отступы</span>
+        <input type="number" value="${padT}" min="0" max="10" step="0.1" style="width:54px;padding:2px 4px;font-size:11px;"
+               oninput="upd(${i},'pad_top_mm',parseFloat(this.value)||0)" title="Сверху">
+        <input type="number" value="${padR}" min="0" max="10" step="0.1" style="width:54px;padding:2px 4px;font-size:11px;"
+               oninput="upd(${i},'pad_right_mm',parseFloat(this.value)||0)" title="Справа">
+        <input type="number" value="${padB}" min="0" max="10" step="0.1" style="width:54px;padding:2px 4px;font-size:11px;"
+               oninput="upd(${i},'pad_bottom_mm',parseFloat(this.value)||0)" title="Снизу">
+        <input type="number" value="${padL}" min="0" max="10" step="0.1" style="width:54px;padding:2px 4px;font-size:11px;"
+               oninput="upd(${i},'pad_left_mm',parseFloat(this.value)||0)" title="Слева">
+      </div>
+    </div>`}
+    <div class="frow">
+      <select onchange="upd(${i},'font',this.value)">${fOpts}</select>
+    </div>
+  </div>
+</div>`;
+}
+
+function autoR(el) { el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+
+function syncCurrentVariantBlocks() {
+  if (!variantConfigs.length) return;
+  if (selVar < 0 || selVar >= variantConfigs.length) return;
+  if (!variantsData[selVar]) {
+    variantsData[selVar] = {
+      blocks: JSON.parse(JSON.stringify(blocks||[])),
+      qr_position: qrpos() || 'bottom_right',
+      symbols_position: sympos() || 'auto',
+    };
+  } else {
+    variantsData[selVar].blocks = JSON.parse(JSON.stringify(blocks||[]));
+  }
+}
+
+function upd(i, f, v) {
+  if (i<0||i>=blocks.length) return;
+  blocks[i][f]=v;
+  syncCurrentVariantBlocks();
+  renderBlocks(); schedulePreview();
+}
+function updFontMm(i, valMm) {
+  if (i < 0 || i >= blocks.length) return;
+  const sInfo = sizesInfo[sz()] || { height_mm: 46 };
+  const r = getBlockMmRange(blocks[i], sInfo.height_mm);
+  const mm = Math.max(r.minMm, Math.min(r.maxMm, Number(valMm)));
+  blocks[i].font_size_mm = mm;
+  const inp = document.getElementById('fontmm-inp-' + i);
+  if (inp) inp.value = mm.toFixed(1);
+  const rng = document.getElementById('fontmm-range-' + i);
+  if (rng) rng.value = mm;
+  syncCurrentVariantBlocks();
+  schedulePreview();
+}
+function rmB(i) {
+  blocks.splice(i,1);
+  syncCurrentVariantBlocks();
+  renderBlocks(); schedulePreview();
+}
+function addBlock() {
+  addBlockAt(blocks.length);
+}
+function addBlockAt(idx) {
+  const sInfo = sizesInfo[sz()] || { height_mm: 46 };
+  const block = {
+    id: Math.random().toString(36).slice(2,10),
+    type: 'custom',
+    text: '',
+    bold: false,
+    italic: false,
+    uppercase: false,
+    align: 'left',
+    font: 'Arial',
+    font_size_mm: getTypeDefaultFontMm('custom', sInfo.height_mm),
+    lineSpacing: 1,
+    pad_top_mm: 0,
+    pad_right_mm: 0,
+    pad_bottom_mm: 0,
+    pad_left_mm: 0,
+    visible: true
+  };
+  const safeIdx = Math.max(0, Math.min(blocks.length, idx));
+  blocks.splice(safeIdx, 0, block);
+  syncCurrentVariantBlocks();
+  renderBlocks();
+  schedulePreview();
+}
+function togBullets(i) {
+  const lines = blocks[i].text.split('\n').filter(l=>l.trim());
+  const hasBullets = lines.length>0 && lines.every(l=>/^[-•*]\s/.test(l.trim()));
+  blocks[i].text = hasBullets
+    ? lines.map(l=>l.trim().replace(/^[-•*]\s*/,'')).join('\n')
+    : lines.map(l=>'- '+l.trim().replace(/^[-•*]\s*/,'')).join('\n');
+  syncCurrentVariantBlocks();
+  renderBlocks(); schedulePreview();
+}
+
+// ── DRAG & DROP ────────────────────────────────────────────
+function setupDnd() {
+  // Drag is initiated only from the header (.bch), but drop targets are whole cards.
+  document.querySelectorAll('#blist .bch[draggable]').forEach(h => {
+    h.addEventListener('dragstart', e => {
+      const card = h.closest('.bcard');
+      if (!card) return;
+      dragSrc = parseInt(card.dataset.i);
+      card.classList.add('dragging');
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    });
+    h.addEventListener('dragend',   () => {
+      document.querySelectorAll('.bcard').forEach(x=>{
+        x.classList.remove('dragging');
+        x.classList.remove('drag-over');
+      });
+      dragSrc = null;
+    });
+  });
+
+  document.querySelectorAll('#blist .bcard').forEach(card => {
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      document.querySelectorAll('.bcard').forEach(x=>x.classList.remove('drag-over'));
+      card.classList.add('drag-over');
+    });
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      const d = parseInt(card.dataset.i);
+      if (dragSrc!==null && dragSrc!==d) {
+        const [m] = blocks.splice(dragSrc,1);
+        blocks.splice(d,0,m);
+        syncCurrentVariantBlocks();
+        dragSrc = null;
+        renderBlocks();
+        schedulePreview();
+      }
+    });
+  });
+}
+
+// ── HTML LABEL RENDERER ────────────────────────────────────
+
+function cornerCSS(pos, pad) {
+  if (pos === 'bottom_center') return `bottom:${pad}px;left:50%;transform:translateX(-50%);`;
+  const t = pos.includes('top')    ? `top:${pad}px;`    : `bottom:${pad}px;`;
+  const lr= pos.includes('left')   ? `left:${pad}px;`   : `right:${pad}px;`;
+  return t + lr;
+}
+
+function cornerCSSOffset(pos, pad, dx, dy) {
+  dx = dx || 0;
+  dy = dy || 0;
+  if (pos === 'bottom_center') return `bottom:${pad+dy}px;left:50%;transform:translateX(-50%);`;
+  const t = pos.includes('top')    ? `top:${pad+dy}px;`    : `bottom:${pad+dy}px;`;
+  const lr= pos.includes('left')   ? `left:${pad+dx}px;`   : `right:${pad+dx}px;`;
+  return t + lr;
+}
+
+function processText(b) {
+  let text = b.uppercase ? (b.text||'').toUpperCase() : (b.text||'');
+  const listMode = b && (b.list_mode === true || b.type === 'list_text');
+  return text.split('\n').map(line => {
+    const t = line.trim();
+    if (!t) return null;
+    if (listMode) {
+      const clean = t.replace(/^[-–—•*]\s*/,'').trimStart();
+      return '• ' + clean;
+    }
+    return /^[-*]\s/.test(t) ? '• ' + t.slice(2).trimStart() : t;
+  }).filter(l => l !== null).join('<br>');
+}
+
+function buildLabelHTML(blks, variant, symsList, W, H, width_mm, height_mm) {
+  const qrPos  = (variant && variant.qr_position)  || 'bottom_right';
+  const symPos = (variant && variant.symbols_position) || 'bottom_left';
+  const resolvedSymPos = symPos === 'auto' ? 'bottom_left' : symPos;
+  const qrSize  = Math.round(W * QR_SIZE_BASE * qrSizeScale);
+  const symSize = Math.round(W * SYM_SIZE_BASE * symSizeScale);
+  const pxPerMm = width_mm > 0 ? W / width_mm : PX_PER_MM;
+  const pad = Math.round(W * 0.038);
+
+  const visible = blks.filter(b => b.visible);
+
+  const tl = pad, tt = pad, tr = pad, tb = pad;
+
+  const blockDivs = visible.map((b, idx) => {
+    const fontMm = getBlockFontMm(b, height_mm);
+    const fontPx = fontMm * pxPerMm;
+    const lineSp = (b.lineSpacing != null && isFinite(b.lineSpacing)) ? b.lineSpacing : 1;
+    const text = processText(b);
+    const padTop = Math.max(0, (b.pad_top_mm || 0) * pxPerMm);
+    const padRight = Math.max(0, (b.pad_right_mm || 0) * pxPerMm);
+    const padBottom = Math.max(0, (b.pad_bottom_mm || 0) * pxPerMm);
+    const padLeft = Math.max(0, (b.pad_left_mm || 0) * pxPerMm);
+    const padCSS = `padding:${padTop}px ${padRight}px ${padBottom}px ${padLeft}px;`;
+    if (b.type === 'separator') {
+      return `<div class="lbl-block" data-bidx="${idx}" style="font-size:${fontPx}px;line-height:1;height:${fontPx}px;word-break:break-word;box-sizing:border-box;"></div>`;
+    }
+    if (!text) return '';
+    const fw = b.bold ? 'bold' : 'normal';
+    const ta = b.align || 'left';
+    const ff = (b.font||'Arial').replace(/'/g, "\\'");
+    const fi = b.italic ? 'italic' : 'normal';
+    return `<div class="lbl-block" data-bidx="${idx}" style="font-size:${fontPx}px;font-weight:${fw};font-style:${fi};text-align:${ta};font-family:'${ff}',sans-serif;margin-bottom:0.2em;line-height:${lineSp};word-break:break-word;box-sizing:border-box;${padCSS}">${text}</div>`;
+  }).join('');
+
+  // QR placeholder — positioned in reserved strip
+  const qrCS = cornerCSS(qrPos, pad);
+  let qrHtml = `<div class="lbl-qr" style="position:absolute;${qrCS}width:${qrSize}px;height:${qrSize}px;background:#ebebeb;border:1px solid #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;font-size:${Math.round(qrSize*0.13)}px;font-family:Arial;z-index:2;gap:2px;"><span style="font-size:${Math.round(qrSize*0.35)}px;line-height:1;">▦</span><span>QR</span></div>`;
+
+  // Symbols — positioned in reserved strip
+  let symHtml = '';
+  if (symsList.length > 0) {
+    // If symbols share corner with QR, align them in one row (no overlap)
+    let sdx = 0, sdy = 0;
+    const sameVert = (resolvedSymPos.includes('bottom') && qrPos.includes('bottom')) || (resolvedSymPos.includes('top') && qrPos.includes('top'));
+    const sameHoriz =
+      (resolvedSymPos.includes('right') && qrPos.includes('right')) ||
+      (resolvedSymPos.includes('left') && qrPos.includes('left')) ||
+      (resolvedSymPos === 'bottom_center' && qrPos === 'bottom_center');
+    if (sameVert && sameHoriz) {
+      const gap = Math.round(pad * 0.5);
+      if (resolvedSymPos === 'bottom_center' && qrPos === 'bottom_center') {
+        const symImgs = symsList.map(id => {
+          const sym = symList.find(s => s.id === id);
+          if (!sym) return `<div style="width:${symSize}px;height:${symSize}px;background:#f0f0f0;border:1px solid #ccc;border-radius:3px;"></div>`;
+          return `<img src="${sym.image_url}" style="width:${symSize}px;height:${symSize}px;object-fit:contain;border-radius:2px;" crossorigin="anonymous">`;
+        }).join('');
+        const qrBox = `<div class="lbl-qr" style="width:${qrSize}px;height:${qrSize}px;background:#ebebeb;border:1px solid #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;font-size:${Math.round(qrSize*0.13)}px;font-family:Arial;gap:2px;"><span style="font-size:${Math.round(qrSize*0.35)}px;line-height:1;">▦</span><span>QR</span></div>`;
+        symHtml = `<div class="lbl-syms" style="position:absolute;bottom:${pad}px;left:50%;transform:translateX(-50%);display:flex;gap:${gap}px;align-items:flex-end;z-index:2;">${symImgs}${qrBox}</div>`;
+        qrHtml = '';
+      } else {
+        sdx = qrSize + gap;
+        const symCS = cornerCSSOffset(resolvedSymPos, pad, sdx, sdy);
+        const symImgs = symsList.map(id => {
+          const sym = symList.find(s => s.id === id);
+          if (!sym) return `<div style="width:${symSize}px;height:${symSize}px;background:#f0f0f0;border:1px solid #ccc;border-radius:3px;"></div>`;
+          return `<img src="${sym.image_url}" style="width:${symSize}px;height:${symSize}px;object-fit:contain;border-radius:2px;" crossorigin="anonymous">`;
+        }).join('');
+        symHtml = `<div class="lbl-syms" style="position:absolute;${symCS}display:flex;gap:3px;z-index:2;">${symImgs}</div>`;
+      }
+    } else {
+      const symCS = cornerCSSOffset(resolvedSymPos, pad, 0, 0);
+      const symImgs = symsList.map(id => {
+        const sym = symList.find(s => s.id === id);
+        if (!sym) return `<div style="width:${symSize}px;height:${symSize}px;background:#f0f0f0;border:1px solid #ccc;border-radius:3px;"></div>`;
+        return `<img src="${sym.image_url}" style="width:${symSize}px;height:${symSize}px;object-fit:contain;border-radius:2px;" crossorigin="anonymous">`;
+      }).join('');
+      symHtml = `<div class="lbl-syms" style="position:absolute;${symCS}display:flex;gap:3px;z-index:2;">${symImgs}</div>`;
+    }
+  }
+
+  return `<div class="lbl-root" data-qrpos="${esc(qrPos)}" data-sympos="${esc(resolvedSymPos)}" style="width:${W}px;height:${H}px;position:relative;background:white;border:1px solid #333;box-sizing:border-box;font-family:Arial,sans-serif;"><div class="lbl-text" style="position:absolute;left:${tl}px;top:${tt}px;right:${tr}px;bottom:${tb}px;overflow:hidden;font-size:10px;">${blockDivs}</div>${qrHtml}${symHtml}</div>`;
+}
+
+
+// Изменение размера QR-кода пользователем (ползунок)
+function onQrSizeChange(val) {
+  const v = Math.max(10, Math.min(400, parseInt(val, 10) || 100));
+  qrSizeScale = v / 100;
+  const lbl = document.getElementById('qrsize-lbl');
+  if (lbl) lbl.textContent = v + '%';
+  if (blocks.length) schedulePreview();
+  if (variantConfigs.length > 0) renderThumbs();
+}
+
+function onSymSizeChange(val) {
+  const v = Math.max(10, Math.min(400, parseInt(val, 10) || 100));
+  symSizeScale = v / 100;
+  const lbl = document.getElementById('symsize-lbl');
+  if (lbl) lbl.textContent = v + '%';
+  if (blocks.length) schedulePreview();
+  if (variantConfigs.length > 0) renderThumbs();
+}
+
+function onQrPosChange() {
+  if (variantConfigs.length && selVar >= 0 && selVar < variantConfigs.length) {
+    if (!variantsData[selVar]) {
+      variantsData[selVar] = {
+        blocks: JSON.parse(JSON.stringify(blocks||[])),
+        qr_position: qrpos() || 'bottom_right',
+        symbols_position: sympos() || 'auto',
+      };
+    } else {
+      variantsData[selVar].qr_position = qrpos() || 'bottom_right';
+    }
+  }
+  if (blocks.length) schedulePreview();
+  if (variantConfigs.length > 0) renderThumbs();
+}
+
+function onSymPosChange() {
+  if (variantConfigs.length && selVar >= 0 && selVar < variantConfigs.length) {
+    if (!variantsData[selVar]) {
+      variantsData[selVar] = {
+        blocks: JSON.parse(JSON.stringify(blocks||[])),
+        qr_position: qrpos() || 'bottom_right',
+        symbols_position: sympos() || 'auto',
+      };
+    } else {
+      variantsData[selVar].symbols_position = sympos() || 'auto';
+    }
+  }
+  if (blocks.length) schedulePreview();
+  if (variantConfigs.length > 0) renderThumbs();
+}
+
+function _rectToLocal(elRect, rootRect, scale) {
+  return {
+    left: (elRect.left - rootRect.left) / scale,
+    right: (elRect.right - rootRect.left) / scale,
+    top: (elRect.top - rootRect.top) / scale,
+    bottom: (elRect.bottom - rootRect.top) / scale,
+    width: elRect.width / scale,
+    height: elRect.height / scale,
+  };
+}
+
+// Сжимаем только те блоки, которые по высоте пересекаются с QR/иконками.
+// Важно: измерения берём в viewport-координатах и переводим в координаты "лейбла" делением на scale.
+function applyObstacleAwareBlockWidths(labelRootEl, scale) {
+  const GAP = 10; // px в координатах лейбла
+
+  const rootRect = labelRootEl.getBoundingClientRect();
+  if (!rootRect.width || !rootRect.height) return;
+
+  const qrPos = (labelRootEl.getAttribute('data-qrpos') || '').toLowerCase();
+  const symPos = (labelRootEl.getAttribute('data-sympos') || '').toLowerCase();
+
+  const hasRight = qrPos.includes('right') || symPos.includes('right');
+  const hasLeft  = qrPos.includes('left')  || symPos.includes('left');
+  const hasCenter = qrPos.includes('center') || symPos.includes('center');
+
+  // If obstacles are on one side, don't introduce margin on the opposite side.
+  // (Prevents huge margin-left when everything is on the right, etc.)
+  const forbidLeftMargin  = hasRight && !hasLeft && !hasCenter;
+  const forbidRightMargin = hasLeft  && !hasRight && !hasCenter;
+
+  const textEl = labelRootEl.querySelector('.lbl-text');
+  if (!textEl) return;
+
+  const textRect = _rectToLocal(textEl.getBoundingClientRect(), rootRect, scale);
+  const textLeft = textRect.left;
+  const textRight = textRect.right;
+  const textCenterX = (textLeft + textRight) / 2;
+
+  const obstacles = [];
+  const qr = labelRootEl.querySelector('.lbl-qr');
+  if (qr) obstacles.push({kind:'qr', rect: _rectToLocal(qr.getBoundingClientRect(), rootRect, scale)});
+  const syms = labelRootEl.querySelector('.lbl-syms');
+  if (syms) obstacles.push({kind:'syms', rect: _rectToLocal(syms.getBoundingClientRect(), rootRect, scale)});
+  if (!obstacles.length) return;
+
+  const blocksEls = labelRootEl.querySelectorAll('.lbl-text .lbl-block');
+  blocksEls.forEach(el => {
+    // reset
+    el.style.maxWidth = '';
+    el.style.marginLeft = '';
+
+    const r = _rectToLocal(el.getBoundingClientRect(), rootRect, scale);
+    let shrinkL = 0, shrinkR = 0;
+
+    // Collect obstacles that intersect this block vertically, and that are near the text area horizontally.
+    const leftObs = [];
+    const rightObs = [];
+    const centerObs = [];
+
+    obstacles.forEach(o => {
+      const or = o.rect;
+      const vOverlap = Math.min(r.bottom, or.bottom) - Math.max(r.top, or.top);
+      if (vOverlap <= 0) return; // нет пересечения по высоте
+
+      // Skip obstacles that are fully outside of text horizontal span (with small tolerance)
+      const hOverlap = Math.min(textRight, or.right) - Math.max(textLeft, or.left);
+      const hNear = hOverlap > -GAP; // allow a small negative overlap due to rounding/scale
+      if (!hNear) return;
+
+      // Decide which side this obstacle is "attached" to relative to the text area.
+      // This avoids treating a large right-corner obstacle as "center", which caused huge margin-left.
+      const dToLeftEdge = Math.abs(or.left - textLeft);
+      const dToRightEdge = Math.abs(textRight - or.right);
+
+      const spansCenter = (or.left < textCenterX && or.right > textCenterX);
+      const roughlyCentered = spansCenter && Math.abs(dToLeftEdge - dToRightEdge) < Math.max(18, (textRight - textLeft) * 0.08);
+
+      if (roughlyCentered) {
+        centerObs.push(or);
+      } else if (dToRightEdge <= dToLeftEdge) {
+        rightObs.push(or);
+      } else {
+        leftObs.push(or);
+      }
+    });
+
+    if (rightObs.length) {
+      // Reserve from the right edge to the leftmost right-side obstacle boundary.
+      const minLeft = Math.min(...rightObs.map(or => or.left));
+      shrinkR = Math.max(shrinkR, (textRight - minLeft) + GAP);
+    }
+    if (leftObs.length) {
+      // Reserve from the left edge to the rightmost left-side obstacle boundary.
+      const maxRight = Math.max(...leftObs.map(or => or.right));
+      shrinkL = Math.max(shrinkL, (maxRight - textLeft) + GAP);
+    }
+    if (centerObs.length) {
+      // Center obstacles: reserve symmetrically based on the widest span.
+      const minL = Math.min(...centerObs.map(or => or.left));
+      const maxR = Math.max(...centerObs.map(or => or.right));
+      const span = (maxR - minL) + GAP * 2;
+      const half = span / 2;
+      shrinkL = Math.max(shrinkL, half);
+      shrinkR = Math.max(shrinkR, half);
+    }
+
+    // If everything is on one side, never treat overlaps as "center" —
+    // otherwise we get "half-width" shrink and symbols stop being counted.
+    if (forbidLeftMargin && centerObs.length) {
+      const minLeft = Math.min(...centerObs.map(or => or.left), ...(rightObs.map(or => or.left)));
+      shrinkR = Math.max(shrinkR, (textRight - minLeft) + GAP);
+      shrinkL = 0;
+    } else if (forbidRightMargin && centerObs.length) {
+      const maxRight = Math.max(...centerObs.map(or => or.right), ...(leftObs.map(or => or.right)));
+      shrinkL = Math.max(shrinkL, (maxRight - textLeft) + GAP);
+      shrinkR = 0;
+    } else {
+      if (forbidLeftMargin) shrinkL = 0;
+      if (forbidRightMargin) shrinkR = 0;
+    }
+
+    // Clamp: don't allow obstacles to consume almost all width (prevents pathological margins)
+    const textW = Math.max(0, textRight - textLeft);
+    let total = Math.max(0, shrinkL) + Math.max(0, shrinkR);
+    const maxTotal = Math.max(0, textW - 20); // keep at least 20px usable width
+    if (total > maxTotal && total > 0) {
+      const k = maxTotal / total;
+      shrinkL *= k;
+      shrinkR *= k;
+      total = maxTotal;
+    }
+
+    if (total > 0.5) {
+      el.style.marginLeft = shrinkL.toFixed(2) + 'px';
+      el.style.maxWidth = `calc(100% - ${total.toFixed(2)}px)`;
+    }
+  });
+}
+
+function getDefaultVariant() {
+  return {name: 'Классический', qr_position: qrpos(), symbols_position: sympos()||'auto', blocks: [], experimental: false};
+}
+
+// ── LIVE PREVIEW (instant HTML rendering) ─────────────────
+function schedulePreview() { clearTimeout(pvTimer); pvTimer = setTimeout(doPreview, 80); scheduleSaveState(); }
+
+function doPreview() {
+  if (!blocks.length) return;
+
+  const baseVariant = variantConfigs[selVar] || getDefaultVariant();
+  const variant = Object.assign({}, baseVariant, {
+    qr_position: (variantsData[selVar] && variantsData[selVar].qr_position) || qrpos(),
+    symbols_position: (variantsData[selVar] && variantsData[selVar].symbols_position) || sympos() || baseVariant.symbols_position || 'auto',
+  });
+
+  const sInfo = sizesInfo[sz()] || {width_mm:46, height_mm:46};
+  const W = Math.round(sInfo.width_mm * PX_PER_MM);
+  const H = Math.round(sInfo.height_mm * PX_PER_MM);
+  const symsList = [...selSyms];
+
+  const stage = document.getElementById('pvstage');
+  const cw = stage.clientWidth  - 24;
+  const ch = stage.clientHeight - 24;
+  const scale = Math.min(cw / W, ch / H, 1.0);
+
+  const pvwrap = document.getElementById('pvwrap');
+  pvwrap.style.cssText = `display:block;width:${Math.round(W*scale)}px;height:${Math.round(H*scale)}px;overflow:hidden;`;
+  pvwrap.innerHTML = `<div style="transform:scale(${scale});transform-origin:top left;">` +
+    buildLabelHTML(blocks, variant, symsList, W, H, sInfo.width_mm, sInfo.height_mm) + `</div>`;
+
+  // Per-block "shrink around" QR/symbols (only blocks that intersect vertically)
+  const lbl = pvwrap.querySelector('.lbl-root');
+  if (lbl) applyObstacleAwareBlockWidths(lbl, scale);
+
+  document.getElementById('pvempty').style.display = 'none';
+  document.getElementById('pvname').textContent = (variantConfigs[selVar]||{}).name || '';
+
+  // Enable PNG/JSON download once we have blocks
+  document.getElementById('dl-png').disabled = false;
+  document.getElementById('dl-json').disabled = false;
+  document.getElementById('btn-editor').disabled = false;
+
+  // Re-render thumbnails if variant configs are loaded
+  if (variantConfigs.length > 0) renderThumbs();
+}
+
+// ── GENERATE ALL 4 VARIANTS ───────────────────────────────
+async function generateAll() {
+  if (!blocks.length) {
+    // По умолчанию генерируем блоки локально, без ИИ
+    parseBlocksLocal();
+    if (!blocks.length) return;
+  }
+  setBtn('btn-gen', true);
+  topStatus('Загрузка вариантов…');
+  showAIModal('loading');
+  try {
+    const d = await post('/api/get-variants', {
+      blocks,
+      size_id: szNorm(),
+      graphic_symbols: [...selSyms],
+      qr_size_percent: Math.round(qrSizeScale * 100),
+      symbol_size_percent: Math.round(symSizeScale * 100),
+    });
+    if (!d || !d.success || !Array.isArray(d.variants) || d.variants.length === 0) {
+      throw new Error(d && d.error ? d.error : 'ИИ не вернул варианты');
+    }
+    variantConfigs = d.variants || [];
+    // Инициализируем локальные данные по вариантам: каждый получает свою копию блоков и позиций
+    variantsData = variantConfigs.map((v, i) => ({
+      blocks: JSON.parse(JSON.stringify((v && Array.isArray(v.blocks) && v.blocks.length ? v.blocks : blocks) || [])),
+      qr_position: v.qr_position || 'bottom_right',
+      symbols_position: v.symbols_position || 'auto',
+    }));
+    renderThumbs();
+    selVariant(0);
+    setDl(true);
+    topStatus(`${variantConfigs.length} варианта`);
+    hideAIModal();
+  } catch(e) {
+    showAIModal('fallback');
+    topStatus('⚠ ' + (e.message || 'Ошибка вариантов'));
+    await delay(1500);
+    hideAIModal();
+  } finally {
+    setBtn('btn-gen', false);
+    // не закрываем принудительно: hideAIModal() сам выдержит sticky-таймер
+  }
+}
+
+function renderThumbs() {
+  const sInfo = sizesInfo[sz()] || {width_mm:46, height_mm:46};
+  const symsList = [...selSyms];
+  // Компактные миниатюры, чтобы панель вариантов не выталкивала предпросмотр.
+  const TW = 100;
+  const TH = Math.round(TW * sInfo.height_mm / sInfo.width_mm);
+
+  // Clear empty slots (we always show 4 tiles in UI)
+  for (let i = 0; i < 4; i++) {
+    if (i >= variantConfigs.length) {
+      const nameEl = document.querySelector(`#vt-${i} .vtn`);
+      if (nameEl) nameEl.textContent = '—';
+      const box = document.getElementById('vti-' + i);
+      if (box) box.innerHTML = '';
+      continue;
+    }
+  }
+
+  variantConfigs.forEach((v, i) => {
+    const nameEl = document.querySelector(`#vt-${i} .vtn`);
+    if (nameEl) nameEl.textContent = v.name || `Вариант ${i+1}`;
+
+    const box = document.getElementById('vti-' + i);
+    if (!box) return;
+    const availW = box.clientWidth || 88;
+    const scale  = availW / TW;
+    box.style.height   = Math.round(TH * scale) + 'px';
+    box.style.overflow = 'hidden';
+    const vBlocks = (variantsData[i] && variantsData[i].blocks) ? variantsData[i].blocks : blocks;
+    const vVariant = Object.assign({}, v, {
+      qr_position: (variantsData[i] && variantsData[i].qr_position) || v.qr_position,
+      symbols_position: (variantsData[i] && variantsData[i].symbols_position) || v.symbols_position,
+    });
+    box.innerHTML = `<div style="transform:scale(${scale});transform-origin:top left;">` +
+      buildLabelHTML(vBlocks, vVariant, symsList, TW, TH, sInfo.width_mm, sInfo.height_mm) + `</div>`;
+
+    const lbl = box.querySelector('.lbl-root');
+    if (lbl) applyObstacleAwareBlockWidths(lbl, scale);
+  });
+  scheduleSaveState();
+}
+
+function resetVariantsToClassic() {
+  // After parsing blocks, old variant configurations become invalid.
+  // Keep only one "Classic" variant, user can regenerate later.
+  variantConfigs = [{
+    name: 'Классический',
+    qr_position: qrpos() || 'bottom_right',
+    symbols_position: sympos() || 'auto',
+    blocks: JSON.parse(JSON.stringify(blocks||[])),
+    experimental: false,
+  }];
+  variantsData = [{
+    blocks: JSON.parse(JSON.stringify(blocks||[])),
+    qr_position: qrpos() || 'bottom_right',
+    symbols_position: sympos() || 'auto',
+  }];
+  selVar = 0;
+  renderThumbs();
+  selVariant(0);
+  setDl(false);
+}
+
+function selVariant(i) {
+  // Сохраняем текущее состояние блоков/позиций в текущем варианте
+  if (variantConfigs.length && selVar >= 0 && selVar < variantConfigs.length) {
+    syncCurrentVariantBlocks();
+    if (!variantsData[selVar]) {
+      variantsData[selVar] = {
+        blocks: JSON.parse(JSON.stringify(blocks||[])),
+        qr_position: qrpos() || 'bottom_right',
+        symbols_position: sympos() || 'auto',
+      };
+    }
+  }
+
+  selVar = i;
+  document.querySelectorAll('.vt').forEach((c,j) => c.classList.toggle('sel', j===i));
+
+  // Подгружаем состояние для выбранного варианта
+  if (variantConfigs.length && variantsData[selVar]) {
+    blocks = JSON.parse(JSON.stringify(variantsData[selVar].blocks||[]));
+    normalizeBlockDefaults(blocks);
+    const qv = variantsData[selVar].qr_position;
+    const sv = variantsData[selVar].symbols_position;
+    const qSel = document.getElementById('qrpos');
+    const sSel = document.getElementById('sympos');
+    if (qSel && qv) qSel.value = qv;
+    if (sSel) sSel.value = sv === 'auto' ? '' : (sv || '');
+    renderBlocks();
+  }
+
+  doPreview();
+}
+
+function mmFromRectValue(valuePx, mmPerPx) {
+  return Math.round(valuePx * mmPerPx * 100) / 100;
+}
+
+function fontIdFromFamily(fontFamily) {
+  const family = String(fontFamily || '').toLowerCase();
+  if (family.includes('arial narrow')) return '019bd4e0-d700-73c1-83eb-a56869d53441';
+  if (family.includes('arial')) return '019bc5cd-e205-72a9-89b1-6cc1d57aa440';
+  return '';
+}
+
+function buildEditorLayoutPayload() {
+  syncCurrentVariantBlocks();
+  doPreview();
+
+  const currentVariantIndex = selVar;
+  const currentVariantData = variantsData[currentVariantIndex];
+  const currentVariantConfig = variantConfigs[currentVariantIndex] || getDefaultVariant();
+  const variantBlocks = (currentVariantData && currentVariantData.blocks) ? currentVariantData.blocks : blocks;
+  const sizeId = szNorm();
+  const sizeInfo = sizesInfo[sizeId] || {width_mm:46, height_mm:46};
+  const qrPos = (currentVariantData && currentVariantData.qr_position) ||
+                currentVariantConfig.qr_position ||
+                qrpos() ||
+                'bottom_right';
+  const symbolsPos = (currentVariantData && currentVariantData.symbols_position) ||
+                     currentVariantConfig.symbols_position ||
+                     sympos() ||
+                     'auto';
+
+  const root = document.querySelector('#pvwrap .lbl-root');
+  if (!root) {
+    throw new Error('Не удалось подготовить превью для редактора');
+  }
+
+  const rootRect = root.getBoundingClientRect();
+  const scaleCorrection = root.offsetWidth && rootRect.width ? (root.offsetWidth / rootRect.width) : 1;
+  const mmPerPx = sizeInfo.width_mm / (root.offsetWidth || LABEL_W);
+  const visibleBlocks = variantBlocks.filter(b => b.visible);
+  const elements = [];
+
+  root.querySelectorAll('.lbl-block').forEach((blockEl) => {
+    const idx = parseInt(blockEl.dataset.bidx || '-1', 10);
+    const block = visibleBlocks[idx];
+    if (!block) return;
+
+    const rect = blockEl.getBoundingClientRect();
+    const style = window.getComputedStyle(blockEl);
+    elements.push({
+      id: `text_${Date.now()}_${elements.length + 1}`,
+      code: '',
+      type: 'text',
+      exampleData: block.text || '',
+      x: mmFromRectValue((rect.left - rootRect.left) * scaleCorrection, mmPerPx),
+      y: mmFromRectValue((rect.top - rootRect.top) * scaleCorrection, mmPerPx),
+      width: mmFromRectValue(rect.width * scaleCorrection, mmPerPx),
+      height: mmFromRectValue(rect.height * scaleCorrection, mmPerPx),
+      orientation: 0,
+      fontSize: mmFromRectValue(parseFloat(style.fontSize) || 0, mmPerPx),
+      align: block.align === 'center' ? 'C' : block.align === 'right' ? 'R' : 'L',
+      fontBold: !!block.bold,
+      fontItalic: !!block.italic,
+      verticalText: false,
+      lineSpacing: Number.isFinite(block.lineSpacing) ? block.lineSpacing : 1,
+      isStatic: true
+    });
+  });
+
+  root.querySelectorAll('.lbl-qr').forEach((qrEl) => {
+    const rect = qrEl.getBoundingClientRect();
+    elements.push({
+      id: `barcode_${Date.now()}_${elements.length + 1}`,
+      type: 'barcode',
+      x: mmFromRectValue((rect.left - rootRect.left) * scaleCorrection, mmPerPx),
+      y: mmFromRectValue((rect.top - rootRect.top) * scaleCorrection, mmPerPx),
+      width: mmFromRectValue(rect.width * scaleCorrection, mmPerPx),
+      height: mmFromRectValue(rect.height * scaleCorrection, mmPerPx),
+      code: '',
+      orientation: 0,
+      barcodeType: 'qrcode',
+      exampleData: 'QR',
+      barcodePrintValue: true,
+      isStatic: true
+    });
+  });
+
+  root.querySelectorAll('.lbl-syms img').forEach((imgEl, idx) => {
+    const rect = imgEl.getBoundingClientRect();
+    elements.push({
+      id: `image_${Date.now()}_${elements.length + 1}`,
+      code: '',
+      type: 'image',
+      imageData: imgEl.currentSrc || imgEl.src || '',
+      x: mmFromRectValue((rect.left - rootRect.left) * scaleCorrection, mmPerPx),
+      y: mmFromRectValue((rect.top - rootRect.top) * scaleCorrection, mmPerPx),
+      width: mmFromRectValue(rect.width * scaleCorrection, mmPerPx),
+      height: mmFromRectValue(rect.height * scaleCorrection, mmPerPx),
+      orientation: 0,
+      isStatic: true
+    });
+  });
+
+  return {
+    source: 'labelflow-index',
+    exported_at: new Date().toISOString(),
+    size_id: sizeId,
+    size: {
+      width_mm: sizeInfo.width_mm,
+      height_mm: sizeInfo.height_mm
+    },
+    variant_info: {
+      index: currentVariantIndex,
+      name: currentVariantConfig.name || `Вариант ${currentVariantIndex + 1}`,
+      qr_position: qrPos,
+      symbols_position: symbolsPos
+    },
+    blocks: JSON.parse(JSON.stringify(variantBlocks || [])),
+    symbols: [...selSyms],
+    templateDefinition: {
+      canvas: {
+        width: sizeInfo.width_mm,
+        height: sizeInfo.height_mm
+      },
+      elements
+    },
+    elements
+  };
+}
+
+function openBlankEditor() {
+  window.location.assign('/labelflow-editor/');
+}
+
+function buildPrintXTemplatePayload() {
+  const payload = buildEditorLayoutPayload();
+  const sizeId = szNorm();
+  return {
+    name: sizeId + '_' + Date.now(),
+    code: sizeId,
+    templateType: authConfig.printx_template_type || 'dynamic',
+    class: authConfig.printx_template_class || 'json',
+    activityId: authConfig.printx_activity_id || '',
+    templateDefinition: {
+      canvas: payload.templateDefinition.canvas,
+      fields: payload.elements
+    }
+  };
+}
+
+function buildPrintXJsonApiPayload() {
+  return {
+    data: {
+      type: 'print-templates',
+      attributes: buildPrintXTemplatePayload()
+    }
+  };
+}
+
+function getPrintXTemplatesCache() {
+  if (!Array.isArray(window.__printXTemplatesCache)) {
+    window.__printXTemplatesCache = [];
+  }
+  return window.__printXTemplatesCache;
+}
+
+function onPrintXImportOverlayClick(event) {
+  if (event && event.target && event.target.id === 'printx-import-modal') {
+    closePrintXImportModal();
+  }
+}
+
+function openPrintXImportModal() {
+  const modal = document.getElementById('printx-import-modal');
+  if (modal) modal.style.display = 'flex';
+  if (getPrintXTemplatesCache().length) {
+    renderPrintXTemplates(getPrintXTemplatesCache());
+  } else {
+    loadPrintXTemplates();
+  }
+}
+
+function closePrintXImportModal() {
+  const modal = document.getElementById('printx-import-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updatePrintXTemplateCount(count, suffix = '') {
+  const el = document.getElementById('printx-import-count');
+  if (!el) return;
+  const normalizedCount = Number.isFinite(Number(count)) ? Number(count) : 0;
+  el.textContent = suffix
+    ? `Шаблонов: ${normalizedCount}${suffix}`
+    : `Шаблонов: ${normalizedCount}`;
+}
+
+function renderPrintXTemplates(items, totalCount = null) {
+  const listEl = document.getElementById('printx-import-list');
+  updatePrintXTemplateCount(0, ' • загрузка...');
+  updatePrintXTemplateCount(0, ' • загрузка...');
+  if (!listEl) return;
+  const visibleCount = items && items.length ? items.length : 0;
+  const effectiveCount = Number.isFinite(Number(totalCount)) ? Number(totalCount) : visibleCount;
+  updatePrintXTemplateCount(effectiveCount, effectiveCount !== visibleCount ? ` (показано ${visibleCount})` : '');
+  if (!items || !items.length) {
+    listEl.innerHTML = '<div class="printx-import-empty">Шаблоны PrintX не найдены</div>';
+    return;
+  }
+  listEl.innerHTML = items.map((item) => `
+    <div class="printx-template-item">
+      <div>
+        <div class="printx-template-title">${esc(item.name || 'Без названия')}</div>
+        <div class="printx-template-meta">ID: ${esc(item.id || '')}${item.code ? ` • code: ${esc(item.code)}` : ''}${item.updatedAt ? ` • ${esc(item.updatedAt)}` : ''}</div>
+      </div>
+      <div class="printx-template-actions">
+        <button class="btn btn-s" data-import-template-id="${esc(item.id || '')}">Открыть</button>
+      </div>
+    </div>
+  `).join('');
+  listEl.querySelectorAll('[data-import-template-id]').forEach((btn) => {
+    btn.addEventListener('click', () => importPrintXTemplate(btn.getAttribute('data-import-template-id') || ''));
+  });
+}
+
+function normalizePrintXTemplateListItem(item, index) {
+  const attrs = (item && item.attributes && typeof item.attributes === 'object') ? item.attributes : (item || {});
+  return {
+    id: String(item && item.id ? item.id : (attrs.id || '')).trim(),
+    name: String(attrs.name || attrs.title || attrs.code || `Шаблон ${index + 1}`).trim(),
+    code: String(attrs.code || '').trim(),
+    updatedAt: String(
+      attrs.updatedAt || attrs.updated_at || attrs.modifiedAt || attrs.modified_at || attrs.createdAt || attrs.created_at || ''
+    ).trim(),
+  };
+}
+
+function dedupePrintXTemplates(items) {
+  const seen = new Set();
+  const result = [];
+  (items || []).forEach((item) => {
+    const id = String(item && item.id ? item.id : '').trim();
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    result.push(item);
+  });
+  return result;
+}
+
+function extractPrintXTemplateTotal(payload, fallbackCount) {
+  const meta = payload && typeof payload === 'object' ? payload.meta : null;
+  const candidates = [
+    meta && meta.total,
+    meta && meta.totalCount,
+    meta && meta.total_count,
+    meta && meta.count,
+    meta && meta.recordCount,
+    meta && meta.record_count,
+    meta && meta.pagination && meta.pagination.total,
+    meta && meta.page && meta.page.total,
+  ];
+  for (const candidate of candidates) {
+    const num = Number(candidate);
+    if (Number.isFinite(num) && num >= 0) return num;
+  }
+  return fallbackCount;
+}
+
+async function loadPrintXTemplates() {
+  const listEl = document.getElementById('printx-import-list');
+  if (listEl) listEl.innerHTML = '<div class="printx-import-empty">Загрузка шаблонов PrintX…</div>';
+  try {
+    const endpoint = authConfig.printx_template_endpoint || '/wh/v1/print-templates';
+    const resp = await post('/api/external/request', {
+      method: 'GET',
+      endpoint,
+      headers: {
+        'Accept': 'application/vnd.api+json, application/json'
+      },
+      params: {
+        'page[size]': '100'
+      }
+    });
+    if (!resp || !resp.success) {
+      throw new Error(resp && (resp.error || resp.text) ? (resp.error || resp.text) : 'Не удалось загрузить список шаблонов');
+    }
+    const rows = (resp.json && Array.isArray(resp.json.data)) ? resp.json.data : [];
+    const items = dedupePrintXTemplates(rows
+      .map((item, index) => normalizePrintXTemplateListItem(item, index))
+      .filter((item) => item.id));
+    const totalCount = extractPrintXTemplateTotal(resp.json || {}, items.length);
+    window.__printXTemplatesCache = items;
+    renderPrintXTemplates(items, totalCount);
+  } catch (e) {
+    updatePrintXTemplateCount(0, ' • ошибка загрузки');
+    if (listEl) listEl.innerHTML = `<div class="printx-import-empty">⚠ ${esc(e.message || 'Ошибка загрузки')}</div>`;
+  }
+}
+
+function normalizePrintXEditorElement(element, index) {
+  const type = String(element.type || 'text').trim() || 'text';
+  return {
+    id: String(element.id || `printx_${index + 1}`),
+    type,
+    x: Number(element.x || 0),
+    y: Number(element.y || 0),
+    width: Number(element.width || 10),
+    height: Number(element.height || 10),
+    orientation: Number(element.orientation || 0),
+    borderWidth: Number.isFinite(Number(element.borderWidth)) ? Number(element.borderWidth) : 10,
+    fontSize: Number.isFinite(Number(element.fontSize)) ? Number(element.fontSize) : 2,
+    align: element.align || 'L',
+    fontBold: Boolean(element.fontBold),
+    fontItalic: Boolean(element.fontItalic),
+    fontUppercase: Boolean(element.fontUppercase || element.uppercase),
+    code: String(element.code || ''),
+    verticalText: Boolean(element.verticalText),
+    lineSpacing: Number.isFinite(Number(element.lineSpacing)) ? Number(element.lineSpacing) : 1,
+    isStatic: element.isStatic !== false,
+    exampleData: String(element.exampleData || element.text || element.value || element.label || ''),
+    imageData: String(element.imageData || ''),
+    barcodeType: String(element.barcodeType || 'gs1-datamatrix'),
+    barcodePrintValue: element.barcodePrintValue !== false,
+    fontId: String(element.fontId || ''),
+    fontFamily: String(element.fontFamily || ''),
+  };
+}
+
+function getPrintXTemplateObject(value) {
+  if (!value) return {};
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (e) {
+      return {};
+    }
+  }
+  return typeof value === 'object' ? value : {};
+}
+
+function extractPrintXTemplatePayload(record) {
+  const attrs = (record && record.attributes && typeof record.attributes === 'object') ? record.attributes : (record || {});
+  const tpl = getPrintXTemplateObject(attrs.templateDefinition);
+  const canvas = (tpl.canvas && typeof tpl.canvas === 'object')
+    ? tpl.canvas
+    : getPrintXTemplateObject(attrs.canvas);
+  const rawElements = Array.isArray(tpl.elements)
+    ? tpl.elements
+    : (Array.isArray(tpl.fields)
+      ? tpl.fields
+      : (Array.isArray(attrs.elements)
+        ? attrs.elements
+        : (Array.isArray(attrs.fields) ? attrs.fields : [])));
+  const elements = rawElements.map((element, index) => normalizePrintXEditorElement(element, index));
+  const width = Number(canvas.width || attrs.width || attrs.width_mm || attrs.labelWidth || 58) || 58;
+  const height = Number(canvas.height || attrs.height || attrs.height_mm || attrs.labelHeight || 60) || 60;
+  return {
+    source: 'printx-import',
+    imported_at: new Date().toISOString(),
+    printx_template_id: String(record && record.id ? record.id : (attrs.id || '')).trim(),
+    name: String(attrs.name || attrs.code || '').trim(),
+    size: {
+      width_mm: width,
+      height_mm: height,
+    },
+    templateDefinition: {
+      canvas: {
+        width,
+        height,
+      },
+      elements,
+    },
+    elements,
+  };
+}
+
+function findClosestSizeId(widthMm, heightMm) {
+  const targetW = Number(widthMm || 46) || 46;
+  const targetH = Number(heightMm || 46) || 46;
+  let bestId = '46x46';
+  let bestScore = Number.POSITIVE_INFINITY;
+  Object.entries(sizesInfo || {}).forEach(([sizeId, info]) => {
+    if (!info || typeof info !== 'object') return;
+    const w = Number(info.width_mm || 0);
+    const h = Number(info.height_mm || 0);
+    if (!w || !h) return;
+    const score = Math.abs(w - targetW) + Math.abs(h - targetH);
+    if (score < bestScore) {
+      bestScore = score;
+      bestId = sizeId;
+    }
+  });
+  return bestId;
+}
+
+function inferQrPositionFromElements(elements, size) {
+  const qr = (elements || []).find((element) => String(element.type || '').toLowerCase() === 'barcode');
+  if (!qr) return 'bottom_right';
+  const width = Number(size && size.width_mm ? size.width_mm : 46) || 46;
+  const height = Number(size && size.height_mm ? size.height_mm : 46) || 46;
+  const cx = Number(qr.x || 0) + Number(qr.width || 0) / 2;
+  const cy = Number(qr.y || 0) + Number(qr.height || 0) / 2;
+  const horizontal = cx < width * 0.33 ? 'left' : (cx > width * 0.67 ? 'right' : 'center');
+  const vertical = cy < height * 0.5 ? 'top' : 'bottom';
+  if (horizontal === 'center') {
+    return vertical === 'bottom' ? 'bottom_center' : 'top_right';
+  }
+  return `${vertical}_${horizontal}`;
+}
+
+function detectGeneratorBlockType(element) {
+  const text = String(element.exampleData || '').trim();
+  const lineCount = text ? text.split('\n').filter((line) => line.trim()).length : 0;
+  if (lineCount > 1 && text.split('\n').every((line) => !line.trim() || /^[-•*]/.test(line.trim()))) {
+    return 'list_text';
+  }
+  if (/^(Р°СЂС‚\.|art\.|Р°СЂС‚РёРєСѓР»\b)/i.test(text)) return 'article';
+  if (element.fontBold && Number(element.fontSize || 0) >= 1.8) return 'header';
+  if (element.fontBold && Number(element.fontSize || 0) >= 1.3) return 'subheader';
+  return 'custom';
+}
+
+function estimateImportedBlockFontSize(element, size) {
+  const explicit = Number(element.fontSize || 0);
+  const heightMm = Number(element.height || 0);
+  const lineSpacing = Number.isFinite(Number(element.lineSpacing)) ? Number(element.lineSpacing) : 1;
+  const lines = String(element.exampleData || '').split('\n').filter((line) => line.trim()).length || 1;
+  const fitted = heightMm > 0 ? Math.max(0.8, heightMm / Math.max(1, lines * lineSpacing)) : 1;
+  const base = explicit > 0 ? explicit : fitted;
+  const labelHeight = Number(size && size.height_mm ? size.height_mm : 46) || 46;
+  return Math.max(labelHeight / 60, Math.min(labelHeight / 12, base));
+}
+
+function buildGeneratorBlocksFromPrintXElements(textElements, size) {
+  const result = [];
+  let prevBottom = null;
+  textElements.forEach((element, index) => {
+    const currentTop = Number(element.y || 0);
+    if (prevBottom != null) {
+      const gap = currentTop - prevBottom;
+      if (gap > 0.35) {
+        result.push({
+          id: `printx_gap_${index}`,
+          type: 'separator',
+          text: '',
+          bold: false,
+          italic: false,
+          uppercase: false,
+          align: 'left',
+          font: 'Arial',
+          font_size_mm: Math.min(Math.max(gap, 0.4), (Number(size && size.height_mm ? size.height_mm : 46) || 46) / 2),
+          lineSpacing: 1,
+          pad_top_mm: 0,
+          pad_right_mm: 0,
+          pad_bottom_mm: 0,
+          pad_left_mm: 0,
+          visible: true,
+        });
+      }
+    }
+    result.push({
+      id: String(element.id || `printx_block_${index + 1}`),
+      type: detectGeneratorBlockType(element),
+      text: String(element.exampleData || '').trim(),
+      bold: Boolean(element.fontBold),
+      italic: Boolean(element.fontItalic),
+      uppercase: Boolean(element.fontUppercase),
+      align: element.align === 'C' ? 'center' : (element.align === 'R' ? 'right' : 'left'),
+      font: element.fontFamily || 'Arial',
+      font_size_mm: estimateImportedBlockFontSize(element, size),
+      lineSpacing: Number.isFinite(Number(element.lineSpacing)) ? Number(element.lineSpacing) : 1,
+      pad_top_mm: 0,
+      pad_right_mm: 0,
+      pad_bottom_mm: 0,
+      pad_left_mm: 0,
+      visible: true,
+    });
+    prevBottom = currentTop + Number(element.height || 0);
+  });
+  return result.filter((block) => block.type === 'separator' || block.text);
+}
+
+function convertPrintXTemplateToGeneratorState(record) {
+  const payload = extractPrintXTemplatePayload(record);
+  const textElements = (payload.elements || [])
+    .filter((element) => String(element.type || '').toLowerCase() === 'text')
+    .sort((a, b) => {
+      const dy = Number(a.y || 0) - Number(b.y || 0);
+      if (Math.abs(dy) > 0.01) return dy;
+      return Number(a.x || 0) - Number(b.x || 0);
+    });
+  const blocksFromElements = buildGeneratorBlocksFromPrintXElements(textElements, payload.size);
+  const qrElement = (payload.elements || []).find((element) => String(element.type || '').toLowerCase() === 'barcode');
+
+  const blocksPayload = blocksFromElements.length ? blocksFromElements : [{
+    id: 'printx_import_fallback',
+    type: 'custom',
+    text: payload.name || 'Импортированный шаблон PrintX',
+    bold: false,
+    italic: false,
+    uppercase: false,
+    align: 'left',
+    font: 'Arial',
+    font_size_mm: 1.2,
+    lineSpacing: 1,
+    pad_top_mm: 0,
+    pad_right_mm: 0,
+    pad_bottom_mm: 0,
+    pad_left_mm: 0,
+    visible: true,
+  }];
+
+  const sizeId = findClosestSizeId(payload.size.width_mm, payload.size.height_mm);
+  const qrPosition = inferQrPositionFromElements(payload.elements || [], payload.size);
+  const qrScale = qrElement && payload.size && payload.size.width_mm
+    ? Math.max(0.55, Math.min(1.4, Number(qrElement.width || 0) / (Number(payload.size.width_mm || 46) * QR_SIZE_BASE)))
+    : 1;
+  return {
+    historyName: payload.name || `PrintX ${payload.printx_template_id || ''}`.trim(),
+    state: {
+      raw: blocksPayload.map((block) => block.text).join('\n\n'),
+      sizeId,
+      qrpos: qrPosition,
+      sympos: '',
+      qrSizeScale: qrScale,
+      symSizeScale: 1,
+      selSyms: [],
+      blocks: blocksPayload,
+      variantConfigs: [{
+        name: 'Импорт из PrintX',
+        qr_position: qrPosition,
+        symbols_position: 'auto',
+        blocks: JSON.parse(JSON.stringify(blocksPayload)),
+        experimental: false,
+      }],
+      variantsData: [{
+        blocks: JSON.parse(JSON.stringify(blocksPayload)),
+        qr_position: qrPosition,
+        symbols_position: 'auto',
+      }],
+      selVar: 0,
+      printxActivityId: String(authConfig.printx_activity_id || '').trim(),
+    }
+  };
+}
+
+async function importPrintXTemplate(templateId) {
+  if (!templateId) {
+    topStatus('⚠ Не найден id шаблона PrintX');
+    return;
+  }
+  topStatus('Загружаем шаблон из PrintX...');
+  try {
+    const baseEndpoint = (authConfig.printx_template_endpoint || '/wh/v1/print-templates').replace(/\/$/, '');
+    const resp = await post('/api/external/request', {
+      method: 'GET',
+      endpoint: `${baseEndpoint}/${encodeURIComponent(templateId)}`,
+      headers: {
+        'Accept': 'application/vnd.api+json, application/json'
+      }
+    });
+    if (!resp || !resp.success) {
+      throw new Error(resp && (resp.error || resp.text) ? (resp.error || resp.text) : 'Не удалось загрузить шаблон PrintX');
+    }
+    const record = (resp.json && resp.json.data) ? resp.json.data : (resp.json || {});
+    const imported = convertPrintXTemplateToGeneratorState(record);
+    if (!imported || !imported.state || !Array.isArray(imported.state.blocks) || !imported.state.blocks.length) {
+      throw new Error('В шаблоне PrintX не найдено данных для генератора');
+    }
+    closePrintXImportModal();
+    applyHistoryState(imported.state);
+    const historyInput = document.getElementById('history-name');
+    if (historyInput) historyInput.value = imported.historyName || '';
+    topStatus(`Шаблон PrintX загружен в генератор: ${imported.historyName || templateId}`);
+  } catch (e) {
+    console.error('importPrintXTemplate error:', e);
+    topStatus('⚠ ' + (e.message || 'Ошибка импорта шаблона PrintX'));
+  }
+}
+
+function syncPrintXActivityIdInput(value) {
+  const input = document.getElementById('printx-activity-id');
+  if (input && input.value !== String(value || '')) {
+    input.value = String(value || '');
+  }
+}
+
+async function resolvePrintXActivityId(forceRefresh = false) {
+  if (!forceRefresh && authConfig.printx_activity_id) {
+    syncPrintXActivityIdInput(authConfig.printx_activity_id);
+    return authConfig.printx_activity_id;
+  }
+
+  syncPrintXActivityIdInput('Поиск...');
+  const resp = await post('/api/external/request', {
+    method: 'GET',
+    endpoint: '/marking/v1/activities',
+    params: {
+      'page[size]': '1000'
+    }
+  });
+  if (!resp || !resp.success) {
+    throw new Error(resp && (resp.error || resp.text) ? (resp.error || resp.text) : 'Не удалось загрузить список активностей PrintX');
+  }
+
+  const items = (resp.json && Array.isArray(resp.json.data)) ? resp.json.data : [];
+  const preferred = items.find((item) =>
+    item &&
+    item.id &&
+    (
+      item.isActive === true ||
+      (item.attributes && item.attributes.isActive === true)
+    )
+  ) || items.find((item) => item && item.id);
+  if (!preferred || !preferred.id) {
+    throw new Error('PrintX не вернул ни одной активности');
+  }
+
+  authConfig.printx_activity_id = preferred.id;
+  syncPrintXActivityIdInput(preferred.id);
+  return preferred.id;
+}
+
+async function submitPrintXTemplateRequest() {
+  const method = (authConfig.printx_template_method || 'POST').toUpperCase();
+  const endpoint = authConfig.printx_template_endpoint || '/printing/templates';
+  return await post('/api/external/request', {
+    method,
+    endpoint,
+    headers: {
+      'Content-Type': 'application/vnd.api+json',
+      'Accept': 'application/vnd.api+json'
+    },
+    json: buildPrintXJsonApiPayload()
+  });
+}
+
+function extractPrintXTemplateId(resp) {
+  const result = (resp && resp.json) ? resp.json : {};
+  return result.id || result.template_id || (result.data && (result.data.id || result.data.template_id)) || '';
+}
+
+async function createPrintXTemplate() {
+  if (!blocks.length) {
+    topStatus('Сначала создайте этикетку');
+    return;
+  }
+
+  const button = document.getElementById('btn-editor');
+  button.disabled = true;
+  topStatus('Создаем шаблон в PrintX...');
+
+  try {
+    authConfig.printx_activity_id = await resolvePrintXActivityId();
+    let resp = await submitPrintXTemplateRequest();
+    if (!resp || !resp.success) {
+      const errorText = resp && (resp.error || resp.text) ? (resp.error || resp.text) : '';
+      if (errorText.includes('The selected activity id is invalid')) {
+        authConfig.printx_activity_id = '';
+        syncPrintXActivityIdInput('');
+        authConfig.printx_activity_id = await resolvePrintXActivityId(true);
+        resp = await submitPrintXTemplateRequest();
+        if (resp && resp.success) {
+          const retryTemplateId = extractPrintXTemplateId(resp);
+          await saveCurrentLabelToHistory({
+            source: 'printx',
+            printxTemplateId: retryTemplateId,
+            silent: true,
+          });
+          topStatus(retryTemplateId
+            ? `OK: С€Р°Р±Р»РѕРЅ СЃРѕР·РґР°РЅ РІ PrintX (id ${retryTemplateId})`
+            : 'OK: С€Р°Р±Р»РѕРЅ СЃРѕР·РґР°РЅ РІ PrintX');
+          return;
+        }
+      }
+      throw new Error(resp && (resp.error || resp.text) ? (resp.error || resp.text) : 'Не удалось создать шаблон в PrintX');
+    }
+    const templateId = extractPrintXTemplateId(resp);
+    await saveCurrentLabelToHistory({
+      source: 'printx',
+      printxTemplateId: templateId,
+      silent: true,
+    });
+    topStatus(templateId
+      ? `OK: шаблон создан в PrintX (id ${templateId})`
+      : 'OK: шаблон создан в PrintX');
+  } catch (e) {
+    console.error('createPrintXTemplate error:', e);
+    topStatus('⚠ ' + (e.message || 'Ошибка создания шаблона в PrintX'));
+  } finally {
+    button.disabled = false;
+  }
+}
+
+
+// ── DOWNLOAD ──────────────────────────────────────────────
+async function download(fmt) {
+  if (!blocks.length) return;
+  const btn = document.getElementById('dl-' + fmt);
+  btn.disabled = true;
+  topStatus('Подготовка файла…');
+
+  if (fmt === 'png') {
+    await downloadPNG();
+    btn.disabled = false;
+    return;
+  }
+
+  // SVG via server
+  try {
+    const variant = variantConfigs[selVar] || getDefaultVariant();
+    const d = await post('/api/generate', {
+      blocks, size_id: szNorm(), format: 'svg',
+      variant_index: selVar, preview_mode: false,
+      qr_position: (variantsData[selVar] && variantsData[selVar].qr_position) || qrpos(),
+      symbols_position: (variantsData[selVar] && variantsData[selVar].symbols_position) || sympos() || variant.symbols_position || undefined,
+      graphic_symbols: [...selSyms],
+    });
+    if (!d.success) throw new Error(d.error);
+    const v = (d.variants||[])[0];
+    if (!v||!v.image_url) throw new Error('Нет ссылки');
+    const a = document.createElement('a');
+    a.href = v.image_url; a.download = v.filename || 'label.svg';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    topStatus('Скачано: ' + a.download);
+  } catch(e) { topStatus('⚠ ' + e.message); }
+  finally { btn.disabled = false; }
+}
+
+function downloadJSON() {
+  if (!blocks.length) return;
+  try {
+    const payload = buildEditorLayoutPayload();
+    const sizeId = szNorm();
+    const json = JSON.stringify({
+      name: sizeId + '_' + Date.now(),
+      code: sizeId,
+      templateDefinition: payload.templateDefinition
+    }, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'label_' + sizeId + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    topStatus('JSON скачан');
+  } catch (e) {
+    topStatus('⚠ ' + (e.message || 'Ошибка экспорта JSON'));
+  }
+}
+
+async function downloadPNG() {
+  const variant = Object.assign({}, variantConfigs[selVar] || getDefaultVariant(), {
+    qr_position: (variantsData[selVar] && variantsData[selVar].qr_position) || qrpos(),
+    symbols_position: (variantsData[selVar] && variantsData[selVar].symbols_position) || sympos() || (variantConfigs[selVar]||{}).symbols_position || 'auto',
+  });
+  const sizeId = szNorm();
+  const pxInfo = SIZE_PX[sizeId] || { w: 1086, h: 1086 };
+  const sizeInfo = sizesInfo[sizeId] || { width_mm: 46, height_mm: 46 };
+  const W = pxInfo.w;
+  const H = pxInfo.h;
+  const symsList = [...selSyms];
+
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;';
+  div.innerHTML = buildLabelHTML(blocks, variant, symsList, W, H, sizeInfo.width_mm, sizeInfo.height_mm);
+  document.body.appendChild(div);
+
+  try {
+    const root = div.querySelector('.lbl-root');
+    if (root) applyObstacleAwareBlockWidths(root, 1);
+
+    const canvas = await html2canvas(div.firstChild, {
+      scale: 1, useCORS: true, backgroundColor: '#ffffff', logging: false,
+    });
+    const dataUrl = canvas.toDataURL('image/png');
+
+    // отправляем на сервер для проставления DPI=600 и сохранения
+    const base64 = dataUrl.split(',')[1] || '';
+    const resp = await post('/api/fix-png', {
+      png_base64: base64,
+      size_id: sizeId,
+    });
+    if (!resp || !resp.success || !resp.image_url) {
+      throw new Error(resp && resp.error ? resp.error : 'Ошибка сервера фикса PNG');
+    }
+    const link = document.createElement('a');
+    link.download = resp.filename || `label_${sizeId}.png`;
+    link.href = resp.image_url;
+    link.click();
+    topStatus('Скачано: ' + link.download);
+  } catch(e) {
+    topStatus('⚠ Ошибка PNG: ' + e.message);
+    console.error(e);
+  } finally {
+    document.body.removeChild(div);
+  }
+}
+
+// Resize → re-render preview
+window.addEventListener('resize', () => { if (blocks.length) doPreview(); });
+
+// ── HELPERS ───────────────────────────────────────────────
+function sz()     { return document.getElementById('sz').value; }
+function szNorm() {
+  const id = sz();
+  if (id === '40x100') return '100x40';
+  if (id === '35x100') return '100x35';
+  return id;
+}
+function qrpos()  { return document.getElementById('qrpos').value; }
+function sympos() { return document.getElementById('sympos').value; }
+
+async function post(url, body, options = {}) {
+  return requestJson(url, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body),
+    ...options,
+  });
+}
+
+function delay(ms){ return new Promise(res=>setTimeout(res, ms)); }
+
+let aiModalMode = null; // 'loading' | 'fallback' | null
+let aiModalStickyUntil = 0;
+
+function showAIModal(mode){
+  const ov = document.getElementById('ai-modal');
+  const title = document.getElementById('ai-title');
+  const sub = document.getElementById('ai-sub');
+  const spin = document.getElementById('ai-spin');
+  if (!ov || !title || !sub || !spin) return;
+  aiModalMode = mode;
+  if (mode === 'fallback') {
+    title.textContent = 'ИИ не вернул ответ';
+    sub.textContent = 'Разбиваем блоки вручную…';
+    spin.style.display = 'none';
+    aiModalStickyUntil = Date.now() + 1500;
+  } else {
+    title.textContent = 'Запрос отправлен';
+    sub.textContent = 'Искусственный интеллект делает свою работу…';
+    spin.style.display = '';
+    aiModalStickyUntil = 0;
+  }
+  ov.style.display = 'flex';
+}
+
+async function hideAIModal(){
+  const ov = document.getElementById('ai-modal');
+  if (!ov) return;
+  const now = Date.now();
+  if (aiModalMode === 'fallback' && aiModalStickyUntil && now < aiModalStickyUntil) {
+    await delay(aiModalStickyUntil - now);
+  }
+  ov.style.display = 'none';
+  aiModalMode = null;
+  aiModalStickyUntil = 0;
+}
+
+async function loadExample() {
+  try {
+    const r = await fetch('/example.txt', {cache: 'no-store', credentials: 'same-origin'});
+    if (!r.ok) throw new Error('example.txt не найден');
+    const txt = await r.text();
+    const ta = document.getElementById('raw');
+    if (ta) ta.value = txt.trim();
+    topStatus('Загружен пример');
+    setSt('in','','');
+  } catch (e) {
+    topStatus('⚠ ' + (e.message || 'Ошибка загрузки примера'));
+  }
+}
+
+function setSt(area, cls, msg) {
+  const el = document.getElementById('st-' + area); if(!el) return;
+  el.textContent = msg; el.className = 'st' + (cls ? ' '+cls : '');
+}
+function topStatus(msg) { document.getElementById('status-top').textContent = msg; }
+function showSaveToast(msg, type = 'success') {
+  const el = document.getElementById('save-toast');
+  if (!el) return;
+  clearTimeout(saveToastTimer);
+  el.textContent = msg;
+  el.className = 'toast' + (type === 'error' ? ' error' : '');
+  requestAnimationFrame(() => el.classList.add('show'));
+  saveToastTimer = setTimeout(() => {
+    el.classList.remove('show');
+  }, 2200);
+}
+function toggleHistoryPopover(force) {
+  const popover = document.getElementById('history-popover');
+  if (!popover) return;
+  const shouldOpen = typeof force === 'boolean' ? force : !popover.classList.contains('open');
+  popover.classList.toggle('open', shouldOpen);
+}
+function closeHistoryPopover() {
+  toggleHistoryPopover(false);
+}
+document.addEventListener('click', (event) => {
+  const wrap = document.querySelector('.history-popover-wrap');
+  if (!wrap || wrap.contains(event.target)) return;
+  closeHistoryPopover();
+});
+function setBtn(id, dis) { const e = document.getElementById(id); if(e) e.disabled = dis; }
+function setDl(on) { 
+  ['dl-png','dl-json','btn-edit','btn-editor','btn-history-save'].forEach(id => {
+    const e = document.getElementById(id); 
+    if(e) e.disabled = !on; 
+  }); 
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── STATE PERSISTENCE ─────────────────────────────────────
+const _GEN_STATE_KEY = 'lf_gen_state';
+let _saveStateTimer = null;
+
+function scheduleSaveState() {
+  clearTimeout(_saveStateTimer);
+  _saveStateTimer = setTimeout(saveGeneratorState, 400);
+}
+
+function saveGeneratorState() {
+  try {
+    const state = {
+      raw: document.getElementById('raw').value,
+      sizeId: sz(),
+      qrpos: qrpos(),
+      sympos: sympos(),
+      qrSizeScale,
+      symSizeScale,
+      selSyms: [...selSyms],
+      blocks: JSON.parse(JSON.stringify(blocks)),
+      variantConfigs: JSON.parse(JSON.stringify(variantConfigs)),
+      variantsData: JSON.parse(JSON.stringify(variantsData)),
+      selVar,
+      col1Open
+    };
+    localStorage.setItem(_GEN_STATE_KEY, JSON.stringify(state));
+  } catch(e) {}
+}
+
+function restoreGeneratorState() {
+  try {
+    const saved = localStorage.getItem(_GEN_STATE_KEY);
+    if (!saved) return;
+    const s = JSON.parse(saved);
+
+    if (s.raw != null) document.getElementById('raw').value = s.raw;
+
+    if (s.sizeId) {
+      const sEl = document.getElementById('sz');
+      if (sEl) for (const o of sEl.options) { if (o.value === s.sizeId) { o.selected = true; break; } }
+    }
+    if (s.qrpos) document.getElementById('qrpos').value = s.qrpos;
+    if (s.sympos != null) document.getElementById('sympos').value = s.sympos;
+
+    if (s.qrSizeScale != null) {
+      qrSizeScale = s.qrSizeScale;
+      const sl = document.getElementById('qrsize');
+      if (sl) sl.value = Math.round(qrSizeScale * 100);
+      const lbl = document.getElementById('qrsize-lbl');
+      if (lbl) lbl.textContent = Math.round(qrSizeScale * 100) + '%';
+    }
+    if (s.symSizeScale != null) {
+      symSizeScale = s.symSizeScale;
+      const sl = document.getElementById('symsize');
+      if (sl) sl.value = Math.round(symSizeScale * 100);
+      const lbl = document.getElementById('symsize-lbl');
+      if (lbl) lbl.textContent = Math.round(symSizeScale * 100) + '%';
+    }
+    if (s.selSyms) {
+      selSyms = new Set(s.selSyms);
+      renderSymGrid();
+    }
+    if (s.blocks && s.blocks.length) {
+      blocks = s.blocks;
+      normalizeBlockDefaults(blocks);
+      renderBlocks();
+    }
+    if (s.variantConfigs && s.variantConfigs.length) {
+      variantConfigs = s.variantConfigs;
+      variantsData = s.variantsData || [];
+      selVar = typeof s.selVar === 'number' ? s.selVar : 0;
+      renderThumbs();
+      // apply variant without triggering another save cycle
+      document.querySelectorAll('.vt').forEach((c, j) => c.classList.toggle('sel', j === selVar));
+      const vd = variantsData[selVar];
+      if (vd) {
+        blocks = JSON.parse(JSON.stringify(vd.blocks || blocks));
+        normalizeBlockDefaults(blocks);
+        if (vd.qr_position) document.getElementById('qrpos').value = vd.qr_position;
+        if (vd.symbols_position) document.getElementById('sympos').value = vd.symbols_position;
+        renderBlocks();
+      }
+      setDl(true);
+    }
+    if (s.col1Open === false && col1Open) toggleCol1();
+    if (blocks.length) {
+      clearTimeout(pvTimer);
+      pvTimer = setTimeout(doPreview, 80);
+    }
+  } catch(e) {
+    console.error('restoreGeneratorState error:', e);
+  }
+}
+
+function clearAllData() {
+  if (!confirm('Очистить все данные?\n\nГенератор (текст, блоки, варианты) и редактор будут сброшены.')) return;
+  localStorage.removeItem(_GEN_STATE_KEY);
+  localStorage.removeItem('lf_editor_state');
+  localStorage.removeItem('labelflow_editor_return');
+  window.location.reload();
+}
+
+// Загружаем данные при возврате из редактора (или сохранённое состояние)
+function loadFromEditor() {
+  const editorData = localStorage.getItem('labelflow_editor_return');
+  if (editorData) {
+    try {
+      const data = JSON.parse(editorData);
+      if (data.blocks) {
+        blocks = data.blocks;
+        normalizeBlockDefaults(blocks);
+        variantConfigs = [];
+        variantsData = [];
+        selVar = 0;
+        renderBlocks();
+        schedulePreview();
+        topStatus('Данные загружены из редактора');
+      }
+      localStorage.removeItem('labelflow_editor_return');
+    } catch (e) {
+      console.error('Error loading return data:', e);
+    }
+    return true; // editor data was present
+  }
+  return false;
+}
+</script>
+<script>
+  // Heartbeat: пингуем сервер каждые 3 сек пока вкладка открыта.
+  // Сервер завершится сам когда все вкладки закроются и пинги прекратятся.
+  (function () {
+    function ping() { fetch('/api/heartbeat', { method: 'POST', credentials: 'same-origin' }).catch(function () {}); }
+    ping();
+    setInterval(ping, 3000);
+  })();
+</script>
+</body>
+</html>

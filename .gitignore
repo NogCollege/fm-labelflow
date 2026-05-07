@@ -1,0 +1,13 @@
+.claude/
+secret
+SCRATCHPAD.md
+.env
+.env.*
+!.env.example
+__pycache__/
+output/
+dist/
+build/
+*.exe
+*.spec
+*.log
