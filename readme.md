@@ -1,62 +1,156 @@
-# LabelFlow (vlad)
+# fm-labelflow
 
-## Что это
-Локальный сервер для генерации этикеток из текста:
-- парсинг описания товара;
-- генерация макета этикетки;
-- экспорт в `PNG` и `SVG`.
+Сервис для генерации макетов этикеток из текстового описания товара. Проект строит структуру этикетки, предлагает варианты компоновки, рендерит результат в `PNG` или `SVG`, поддерживает ручную доработку в редакторе и умеет работать через внешнюю авторизацию с защищёнными API.
+
+## Что умеет сервис
+
+- разбивает текст товара на смысловые блоки;
+- генерирует несколько вариантов компоновки этикетки;
+- экспортирует макеты в `PNG` и `SVG`;
+- поддерживает графические символы и настройку позиций QR/иконок;
+- открывает встроенный редактор макета;
+- хранит историю созданных этикеток;
+- умеет логиниться во внешний контур и выполнять защищённые API-запросы;
+- содержит встроенный `smoke test` для быстрой технической проверки.
+
+## Основные файлы
+
+- `app.py` , основной Flask-сервер;
+- `block_parser.py` , разбор текста на блоки;
+- `layout_composer.py` , генерация вариантов компоновки;
+- `label_layout.py` , рендеринг этикетки;
+- `llm_client.py` , интеграция с LLM-провайдерами;
+- `index.html` , основное приложение;
+- `login.html` , страница авторизации;
+- `labelflow-editor.html` , встроенный редактор;
+- `smoke_test.py` , сценарии smoke-проверки;
+- `smoke_test.html` , веб-страница запуска smoke test;
+- `.env.example` , пример конфигурации окружения;
+- `Dockerfile` , контейнеризация;
+- `k8s/` , Kubernetes-манифесты.
+
+## Технологии
+
+Проект использует:
+- `Python`
+- `Flask`
+- `Pillow`
+- `requests`
+- `openai`
+- HTML, CSS, JavaScript
+
+## Требования
+
+Рекомендуемое окружение:
+- Python `3.10+`
+- `pip`
+- `venv`
+
+Основные зависимости из `requirements.txt`:
+- `Pillow>=10.0.0`
+- `requests>=2.31.0`
+- `openai>=1.40.0`
+- `flask>=3.0.0`
+- `flask-cors>=4.0.0`
 
 ## Установка
-1. Перейдите в папку проекта:
-```powershell
-cd vlad
+
+### Linux / macOS
+```bash
+git clone https://github.com/NogCollege/fm-labelflow.git
+cd fm-labelflow
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
-2. Создайте и активируйте виртуальное окружение (рекомендуется):
+
+### Windows PowerShell
 ```powershell
-py -3 -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-3. Установите зависимости:
-```powershell
+git clone https://github.com/NogCollege/fm-labelflow.git
+cd fm-labelflow
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
 ## Запуск
-```powershell
-py -3 server.py
+
+```bash
+python app.py
 ```
 
-После запуска откройте:
-`http://localhost:8000`
+После запуска обычно доступны:
+- `http://localhost:8000/` , основное приложение;
+- `http://localhost:8000/login` , страница входа;
+- `http://localhost:8000/labelflow-editor/` , редактор макета;
+- `http://localhost:8000/smoke-test` , страница smoke test;
+- `http://localhost:8000/api/status` , технический статус API.
 
-## Сборка .exe (Windows)
-Сборка идёт через `pywebview` (Edge WebView2) + `PyInstaller`.
+## Основные HTTP-маршруты
 
-```powershell
-.\build_exe.ps1
+### Интерфейсы
+- `GET /` , основной интерфейс LabelFlow;
+- `GET /login` , страница авторизации;
+- `GET /labelflow-editor/` , редактор;
+- `GET /smoke-test` , страница запуска smoke test.
+
+### Базовые API
+- `GET /api/status` , статус сервиса;
+- `GET /api/symbols` , доступные графические символы;
+- `GET /api/block-types` , типы блоков;
+- `POST /api/parse-blocks` , разбор текста в блоки;
+- `POST /api/get-variants` , получение вариантов компоновки;
+- `POST /api/generate` , рендер результата;
+- `POST /api/fix-png` , сохранение PNG с нужным DPI.
+
+### Editor layout API
+- `POST /api/editor-layouts` , сохранить layout;
+- `GET /api/editor-layouts/<layout_id>` , получить layout;
+- `DELETE /api/editor-layouts/<layout_id>` , удалить layout.
+
+### История этикеток
+- `GET /api/label-history` , список сохранённых записей;
+- `POST /api/label-history` , сохранить запись;
+- `GET /api/label-history/<entry_id>` , получить запись;
+- `DELETE /api/label-history/<entry_id>` , удалить запись.
+
+### Авторизация и внешний контур
+- `GET /api/auth/config` , конфигурация авторизации;
+- `GET /api/auth/status` , текущий статус сессии;
+- `POST /api/auth/login` , вход во внешний сервис;
+- `POST /api/auth/logout` , выход;
+- `GET /api/auth/token` , текущее состояние токена;
+- `PUT /api/auth/token` , вручную установить токен;
+- `DELETE /api/auth/token` , очистить токен;
+- `GET /api/auth/profile` , получить профиль;
+- `POST /api/auth/profile/refresh` , обновить профиль;
+- `DELETE /api/auth/profile` , очистить кэш профиля;
+- `POST /api/external/request` , прокси-запрос во внешний защищённый API;
+- `POST /api/external/test-connection` , тест соединения.
+
+### Smoke test
+- `GET /api/smoke-test`
+- `POST /api/smoke-test`
+
+## Конфигурация через `.env`
+
+Проект читает настройки из `.env` и локального env-файла пользователя. Базовый пример смотри в `.env.example`.
+
+На практике здесь две большие группы настроек.
+
+### 1. LLM-настройки
+Примеры переменных:
+
+```env
+LLM_PROVIDER=openai
+LLM_API_KEY=
+LLM_MODEL=gpt-4o-mini
 ```
 
-Готовый файл будет в `dist\LabelFlow.exe`.
+Также поддерживаются режимы вроде `yandex`, `alice` и fallback без полноценного LLM, в зависимости от конфигурации `llm_client.py`.
 
-Примечания:
-- Нужен установленный **Microsoft Edge WebView2 Runtime** (обычно уже есть в Windows 10/11). Если окна нет — установите WebView2 Runtime.
-- При запуске из exe файлы результатов сохраняются в:
-`%LOCALAPPDATA%\LabelFlow\output`
-
-
-
-## Основные API
-- `GET /api/status` - статус сервера
-- `POST /api/parse` - парсинг текста
-- `POST /api/ai-compose` - AI-компоновка макета по человеческому запросу
-- `POST /api/ai-chat` - чат с AI + применение действий к макету
-- `POST /api/generate` - генерация этикетки
-- `POST /api/auth/login` - вход во внешний сервис и сохранение токена/cookies на стороне Flask
-- `GET /api/auth/status` - статус внешней авторизации
-- `POST /api/external/request` - прокси-запрос к защищённому внешнему API через сохранённую сессию
-
-## Внешняя авторизация
-Для интеграции с ETG / защищённым API настройте переменные в `.env`:
+### 2. Внешняя авторизация и защищённый API
+Примеры важных переменных:
 
 ```env
 AUTH_ENABLED=true
@@ -78,74 +172,80 @@ EXTERNAL_CONNECTION_TEST_PATH=auth/v1/profile
 AUTH_PROFILE_PATH=auth/v1/profile
 ```
 
-Если сервис логина принимает обычную HTML-форму, переключите `AUTH_LOGIN_MODE=form`.
-Если токен лежит в другом поле ответа, поправьте `AUTH_TOKEN_KEYS`.
+Если внешний сервис использует не JSON-логин, можно переключить режим, например:
 
-Для ETG логика такая:
-- `POST /auth/auth/token` с телом `{ "username": "...", "password": "..." }`
-- `GET /auth/v1/profile` с `Authorization: Bearer <token>`
-
-Веб-маршруты:
-- `GET /login` - отдельная страница входа
-- `GET /` - генератор LabelFlow, для неавторизованных пользователей редиректит на `/login`
-- `GET /labelflow-editor/` - редактор, тоже защищён авторизацией
-
-Локальные маршруты LabelFlow для этой интеграции:
-- `POST /api/auth/login` - получить внешний токен и сразу подтянуть профиль
-- `GET /api/auth/token` - прочитать состояние токена
-- `PUT /api/auth/token` - вручную установить токен
-- `DELETE /api/auth/token` - очистить токен
-- `GET /api/auth/profile` - получить сохранённый профиль
-- `POST /api/auth/profile/refresh` - перечитать профиль из ETG
-- `DELETE /api/auth/profile` - очистить локальный кэш профиля
-
-Пример тела запроса для генерации:
-```json
-{
-  "text": "Ваш текст товара",
-  "size_id": "46x46",
-  "preview_mode": true,
-  "format": "svg"
-}
+```env
+AUTH_LOGIN_MODE=form
 ```
 
-## Текст для вставки (пример)
+## Smoke test
+
+В проект встроен smoke-тестовый контур:
+- `smoke_test.py` содержит сценарии проверки;
+- `smoke_test.html` даёт веб-интерфейс для запуска;
+- `/api/smoke-test` возвращает результаты проверки.
+
+Это удобно для быстрой диагностики после изменений в:
+- парсере текста;
+- компоновщике;
+- рендере;
+- авторизации;
+- прокси-запросах во внешний API.
+
+## Сборка и деплой
+
+### Windows / exe
+В репозитории есть:
+- `build_exe.ps1`
+- `requirements.packaging.txt`
+- `launcher.py`
+- `updater.py`
+
+Это указывает на отдельный сценарий упаковки десктопной версии.
+
+### Docker
+Есть `Dockerfile`, поэтому сервис можно контейнеризировать.
+
+### Kubernetes
+В папке `k8s/` лежат манифесты:
+- `configmap.yaml`
+- `deployment.yaml`
+- `ingress.yaml`
+- `service.yaml`
+
+## Структура репозитория
+
 ```text
-Шампунь для волос
-ЭГЁН КЕРАСИС
-ПАРФЮМИРОВАННАЯ
-ЛИНИЯ ЭЛЕГАНС
-
-Kerasys Classic Perfume Shampoo Elegance & Sensual
-
-ОБЪЕМ И БЛЕСК
-Парфюмированная формула с 10 цветочными экстрактами и 3 травяными маслами. Почувствуйте чувственный элегантный аромат и объем своих блестящих волос
-
-- 10 ЦВЕТОЧНЫХ ЭКСТРАКТОВ
-- 3 ТРАВЯНЫХ МАСЛА
--АМИНОКИСЛОТЫ
-- 0% СИЛИКОНОВ
-- СТОЙКИЙ АРОМАТ ДО 48 ЧАСОВ
-
-При использовании шампуня и кондиционера в комплексе
-Верхние ноты: яблоневый цвет, ирис, цветы персика
-Средние ноты: тубероза, иланг-иланг, фиалка, гиацинт
-Нижние ноты: сандал, рисовая пудра, мускус
-
-Способ применения: Нанести на мокрые волосы небольшое количество средства, вспенить.
-Оставить для воздействия на 2-3 минуты. Тщательно промыть водой.
-Меры предосторожности: только для наружного применения. При попадании в глаза, промойте проточной водой. Храните в местах недоступных детям, при комнатной температуре, избегая попадания прямых лучей солнца.
-Состав / Ingredients: см на упаковке
-
-Срок годности: годен до (см. на упаковке Год/Месяц/День)
-Номер партии: см. на упаковке Объем (мл/мл): см. на упаковке
-Изготовитель: Aekyung Ind. Co., Ltd. 10F-13F, 2F (Aekyung Tower), 188, Yanghwa-ro, Mapo-gu, Seoul, Республика Корея
-Импортер и организация, уполномоченная изготовителем на принятие претензий от потребителей: ООО «ОРИЕНТ» 690002, Россия, Приморский край, г. Владивосток, пр-т Острякова, д. 26, кв. 119. Тел: (423) 2362990, e-mail: orient@unico-gc.ru, сайт: www.unico-gc.ru
-
-Арт.313756
+fm-labelflow/
+├── app.py
+├── block_parser.py
+├── label_layout.py
+├── layout_composer.py
+├── llm_client.py
+├── index.html
+├── login.html
+├── labelflow-editor.html
+├── smoke_test.py
+├── smoke_test.html
+├── requirements.txt
+├── requirements.packaging.txt
+├── .env.example
+├── Dockerfile
+├── k8s/
+└── readme.md
 ```
 
-## Примечания
-- Для максимальной четкости при масштабировании используйте `SVG`.
-- Для печати и растрового экспорта используйте `PNG (HD)`.
-- Для LLM-режима установите переменную окружения `OPENAI_API_KEY`.
+## Что важно знать
+
+- Старые инструкции запуска через `server.py` для этого репозитория больше неактуальны, фактическая точка входа это `app.py`.
+- Репозиторий уже не ограничивается простым генератором этикеток: в нём есть внешний auth-flow, protected API proxy и история пользовательских макетов.
+- Для production-контура стоит отдельно документировать реальные значения `.env`, но не хранить секреты в репозитории.
+
+## Для разработчиков
+
+При изменениях важно держать README синхронным с кодом, особенно если меняются:
+- точки входа;
+- env-переменные;
+- маршруты авторизации;
+- smoke-тесты;
+- деплой через Docker или Kubernetes.
